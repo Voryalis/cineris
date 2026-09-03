@@ -5,31 +5,36 @@ import {
   MAX_DEPTH,
 } from "./config.js";
 
+import { TILE } from "./map.js";
 import { castRay } from "./raycast.js";
 
 const FONT_STACK =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
-const SHADES = "@#%*+=-:.";
+const DEPTH_SHADES = "@#%*+=-:.";
 
-const shadeFor = (distance, side) => {
+const glyphFor = (tile, distance, side) => {
+  if (tile === TILE.GRAVE) return "†";
+  if (tile === TILE.ICON) return "◊";
+  if (tile === TILE.SHELF) return "▓";
+  if (tile === TILE.TREE) return "♠";
+
   const depth = Math.min(
     1,
     distance / MAX_DEPTH,
   );
 
   const index = Math.min(
-    SHADES.length - 1,
-    Math.floor(depth * SHADES.length) + side,
+    DEPTH_SHADES.length - 1,
+    Math.floor(depth * DEPTH_SHADES.length) + side,
   );
 
-  return SHADES[index];
+  return DEPTH_SHADES[index];
 };
 
 export class Renderer {
   #canvas;
   #context;
-
   #cellWidth = 10;
   #width = 0;
   #height = 0;
@@ -85,21 +90,17 @@ export class Renderer {
     );
   }
 
-  render(world, player, camera) {
+  render(world, player, camera, interaction = null) {
     this.resize();
 
     const columns = Math.max(
       1,
-      Math.floor(
-        this.#width / this.#cellWidth,
-      ),
+      Math.floor(this.#width / this.#cellWidth),
     );
 
     const rows = Math.max(
       1,
-      Math.floor(
-        this.#height / LINE_HEIGHT,
-      ),
+      Math.floor(this.#height / LINE_HEIGHT),
     );
 
     const projection =
@@ -108,8 +109,7 @@ export class Renderer {
 
     const horizon =
       rows / 2 +
-      Math.tan(camera.pitch) *
-      projection;
+      Math.tan(camera.pitch) * projection;
 
     const buffer = Array.from(
       { length: rows },
@@ -161,12 +161,14 @@ export class Renderer {
         projection,
       );
 
-      const glyph = shadeFor(
+      const glyph = glyphFor(
+        hit.tile,
         distance,
         hit.side,
       );
 
       const start = Math.max(0, top);
+
       const end = Math.min(
         rows - 1,
         bottom,
@@ -203,6 +205,30 @@ export class Renderer {
         buffer[row].join(""),
         0,
         row * LINE_HEIGHT,
+      );
+    }
+
+    if (interaction?.text) {
+      const text = interaction.text;
+
+      const width =
+        context.measureText(text).width;
+
+      context.fillStyle = "#050608";
+
+      context.fillRect(
+        (this.#width - width) / 2 - 8,
+        this.#height - LINE_HEIGHT * 2.5,
+        width + 16,
+        LINE_HEIGHT + 6,
+      );
+
+      context.fillStyle = "#e8eee9";
+
+      context.fillText(
+        text,
+        (this.#width - width) / 2,
+        this.#height - LINE_HEIGHT * 2.3,
       );
     }
   }

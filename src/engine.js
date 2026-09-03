@@ -6,6 +6,7 @@ import {
 export class Engine {
   #camera;
   #input;
+  #interaction;
   #player;
   #renderer;
   #world;
@@ -16,12 +17,14 @@ export class Engine {
   constructor({
     camera,
     input,
+    interaction,
     player,
     renderer,
     world,
   }) {
     this.#camera = camera;
     this.#input = input;
+    this.#interaction = interaction;
     this.#player = player;
     this.#renderer = renderer;
     this.#world = world;
@@ -76,10 +79,17 @@ export class Engine {
       this.#world,
     );
 
+    this.#interaction.update(
+      this.#world,
+      this.#player,
+      this.#camera,
+    );
+
     this.#renderer.render(
       this.#world,
       this.#player,
       this.#camera,
+      this.#interaction,
     );
 
     this.#frameId =
