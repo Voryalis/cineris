@@ -41,37 +41,37 @@ const FONT_STACK =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
 const PALETTE = Object.freeze({
-  backgroundTop: "#0b0c10",
-  backgroundMid: "#090a0d",
+  backgroundTop: "#0c0d11",
+  backgroundMid: "#090a0e",
   backgroundBottom: "#07080a",
 
-  groundNear: "#636b70",
-  groundMid: "#485056",
-  groundFar: "#31373c",
+  groundNear: "#60686d",
+  groundMid: "#474e53",
+  groundFar: "#30363a",
 
-  stone: "#8a8b92",
-  plaster: "#9b98a3",
-  brick: "#867d89",
+  stone: "#85868d",
+  plaster: "#96939e",
+  brick: "#817987",
 
-  church: "#938ea0",
-  churchRoof: "#7d7489",
-  dome: "#8f879e",
+  church: "#908a9c",
+  churchRoof: "#7b7387",
+  dome: "#8b8299",
 
-  library: "#7f929c",
-  libraryRoof: "#6d818c",
+  library: "#7d909a",
+  libraryRoof: "#6a7e88",
 
-  houseRoof: "#76717d",
+  houseRoof: "#736e79",
 
-  tree: "#7a8d97",
-  lowWall: "#868990",
-  shelf: "#8d8698",
+  tree: "#788b95",
+  lowWall: "#80838a",
+  shelf: "#898292",
 
-  grave: "#a09ca6",
-  icon: "#a095b0",
-  cross: "#c1b9c8",
+  grave: "#9d9aa2",
+  icon: "#9c92aa",
+  cross: "#bbb4c1",
 
-  text: "#d8dddf",
-  textBackground: "#0a0b0d",
+  text: "#d4dadd",
+  textBackground: "#090a0c",
 });
 
 const FLOOR_SHADES = [
@@ -254,40 +254,6 @@ const groundColor = (
   return PALETTE.groundFar;
 };
 
-const fillGroundCell = (
-  buffer,
-  colorBuffer,
-  row,
-  column,
-  horizon,
-  rows,
-) => {
-  if (row <= horizon) {
-    buffer[row][column] = " ";
-    colorBuffer[row][column] =
-      PALETTE.backgroundBottom;
-    return;
-  }
-
-  const band = Math.min(
-    FLOOR_SHADES.length - 1,
-    Math.floor(
-      (row - horizon) /
-      Math.max(1, rows / 11),
-    ),
-  );
-
-  buffer[row][column] =
-    FLOOR_SHADES[band];
-
-  colorBuffer[row][column] =
-    groundColor(
-      row,
-      horizon,
-      rows,
-    );
-};
-
 const paintBackdrop = (
   context,
   width,
@@ -307,7 +273,7 @@ const paintBackdrop = (
   );
 
   gradient.addColorStop(
-    0.58,
+    0.6,
     PALETTE.backgroundMid,
   );
 
@@ -327,64 +293,7 @@ const paintBackdrop = (
   );
 };
 
-const occludeBelowGround = ({
-  buffer,
-  colorBuffer,
-  depthBuffer,
-  player,
-  horizon,
-  projection,
-  rows,
-  columns,
-}) => {
-  for (
-    let row = 0;
-    row < rows;
-    row += 1
-  ) {
-    for (
-      let column = 0;
-      column < columns;
-      column += 1
-    ) {
-      const depth =
-        depthBuffer[row][column];
-
-      if (
-        !Number.isFinite(depth)
-      ) {
-        continue;
-      }
-
-      const groundRow =
-        horizon +
-        (
-          player.z /
-          Math.max(
-            0.001,
-            depth,
-          )
-        ) *
-        projection;
-
-      if (
-        row >
-        groundRow + 0.5
-      ) {
-        fillGroundCell(
-          buffer,
-          colorBuffer,
-          row,
-          column,
-          horizon,
-          rows,
-        );
-      }
-    }
-  }
-};
-
-const renderRayGeometry = ({
+const renderRayGeometry = (
   buffer,
   colorBuffer,
   depthBuffer,
@@ -393,9 +302,23 @@ const renderRayGeometry = ({
   camera,
   columns,
   rows,
-  projection,
-  horizon,
-}) => {
+) => {
+  const projection =
+    rows /
+    (
+      2 *
+      Math.tan(
+        FOV / 2,
+      )
+    );
+
+  const horizon =
+    rows / 2 +
+    Math.tan(
+      camera.pitch,
+    ) *
+    projection;
+
   for (
     let column = 0;
     column < columns;
@@ -543,14 +466,14 @@ const renderRayGeometry = ({
   }
 };
 
-const plotObjectLine = ({
+const plotObjectLine = (
   buffer,
   colorBuffer,
   depthBuffer,
   projection,
   line,
   color,
-}) => {
+) => {
   const start =
     projectShapePoint(
       projection,
@@ -629,7 +552,7 @@ const plotObjectLine = ({
   }
 };
 
-const renderObjects = ({
+const renderObjects = (
   buffer,
   colorBuffer,
   depthBuffer,
@@ -638,7 +561,7 @@ const renderObjects = ({
   camera,
   columns,
   rows,
-}) => {
+) => {
   const visible = [];
 
   for (
@@ -687,14 +610,14 @@ const renderObjects = ({
       const line
       of object.shape
     ) {
-      plotObjectLine({
+      plotObjectLine(
         buffer,
         colorBuffer,
         depthBuffer,
         projection,
         line,
         color,
-      });
+      );
     }
   }
 };
@@ -835,38 +758,38 @@ export class Renderer {
         {
           length: rows,
         },
-        (_, row) =>
-          Array.from(
-            {
-              length: columns,
-            },
-            (_, column) => {
-              if (
-                row <= horizon
-              ) {
-                return " ";
-              }
+        (_, row) => {
+          if (
+            row <= horizon
+          ) {
+            return Array(
+              columns,
+            ).fill(" ");
+          }
 
-              const band =
-                Math.min(
-                  FLOOR_SHADES.length - 1,
-                  Math.floor(
-                    (
-                      row -
-                      horizon
-                    ) /
-                    Math.max(
-                      1,
-                      rows / 11,
-                    ),
-                  ),
-                );
+          const band =
+            Math.min(
+              FLOOR_SHADES.length - 1,
+              Math.floor(
+                (
+                  row -
+                  horizon
+                ) /
+                Math.max(
+                  1,
+                  rows / 11,
+                ),
+              ),
+            );
 
-              return FLOOR_SHADES[
-                band
-              ];
-            },
-          ),
+          return Array(
+            columns,
+          ).fill(
+            FLOOR_SHADES[
+            band
+            ],
+          );
+        },
       );
 
     const colorBuffer =
@@ -874,20 +797,22 @@ export class Renderer {
         {
           length: rows,
         },
-        (_, row) =>
-          Array.from(
-            {
-              length: columns,
-            },
-            () =>
-              row > horizon
-                ? groundColor(
-                  row,
-                  horizon,
-                  rows,
-                )
-                : PALETTE.backgroundBottom,
-          ),
+        (_, row) => {
+          const color =
+            row > horizon
+              ? groundColor(
+                row,
+                horizon,
+                rows,
+              )
+              : PALETTE.backgroundBottom;
+
+          return Array(
+            columns,
+          ).fill(
+            color,
+          );
+        },
       );
 
     const depthBuffer =
@@ -903,18 +828,23 @@ export class Renderer {
     rasterizeMesh({
       mesh:
         BUILDING_MESH,
+
       player,
       camera,
+
       columns,
       rows,
+
       cellAspect,
+
       buffer,
       colorBuffer,
       depthBuffer,
+
       styleForMaterial,
     });
 
-    renderRayGeometry({
+    renderRayGeometry(
       buffer,
       colorBuffer,
       depthBuffer,
@@ -923,11 +853,9 @@ export class Renderer {
       camera,
       columns,
       rows,
-      projection,
-      horizon,
-    });
+    );
 
-    renderObjects({
+    renderObjects(
       buffer,
       colorBuffer,
       depthBuffer,
@@ -936,18 +864,7 @@ export class Renderer {
       camera,
       columns,
       rows,
-    });
-
-    occludeBelowGround({
-      buffer,
-      colorBuffer,
-      depthBuffer,
-      player,
-      horizon,
-      projection,
-      rows,
-      columns,
-    });
+    );
 
     paintBackdrop(
       context,
@@ -966,15 +883,22 @@ export class Renderer {
         start < columns
       ) {
         const color =
-          colorBuffer[row][start];
+          colorBuffer[
+          row
+          ][
+          start
+          ];
 
         let end =
           start + 1;
 
         while (
           end < columns &&
-          colorBuffer[row][end] ===
-          color
+          colorBuffer[
+          row
+          ][
+          end
+          ] === color
         ) {
           end += 1;
         }
@@ -995,7 +919,8 @@ export class Renderer {
           WORLD_LINE_HEIGHT,
         );
 
-        start = end;
+        start =
+          end;
       }
     }
 
