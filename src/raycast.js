@@ -1,35 +1,57 @@
 import { MAX_DEPTH } from "./config.js";
 
-export const castRay = (world, x, y, angle) => {
-  const dirX = Math.cos(angle);
-  const dirY = Math.sin(angle);
+export const castRay = (
+  world,
+  x,
+  y,
+  angle,
+) => {
+  const dirX =
+    Math.cos(angle);
 
-  let mapX = Math.floor(x);
-  let mapY = Math.floor(y);
+  const dirY =
+    Math.sin(angle);
+
+  let mapX =
+    Math.floor(x);
+
+  let mapY =
+    Math.floor(y);
 
   const deltaX =
     dirX === 0
       ? Infinity
-      : Math.abs(1 / dirX);
+      : Math.abs(
+        1 / dirX,
+      );
 
   const deltaY =
     dirY === 0
       ? Infinity
-      : Math.abs(1 / dirY);
+      : Math.abs(
+        1 / dirY,
+      );
 
-  const stepX = dirX < 0 ? -1 : 1;
-  const stepY = dirY < 0 ? -1 : 1;
+  const stepX =
+    dirX < 0 ? -1 : 1;
+
+  const stepY =
+    dirY < 0 ? -1 : 1;
 
   let sideX =
-    (dirX < 0
-      ? x - mapX
-      : mapX + 1 - x) *
+    (
+      dirX < 0
+        ? x - mapX
+        : mapX + 1 - x
+    ) *
     deltaX;
 
   let sideY =
-    (dirY < 0
-      ? y - mapY
-      : mapY + 1 - y) *
+    (
+      dirY < 0
+        ? y - mapY
+        : mapY + 1 - y
+    ) *
     deltaY;
 
   let side = 0;
@@ -50,14 +72,22 @@ export const castRay = (world, x, y, angle) => {
         ? sideX - deltaX
         : sideY - deltaY;
 
-    if (distance > MAX_DEPTH) {
+    if (
+      distance >
+      MAX_DEPTH
+    ) {
       return null;
     }
 
-    const height =
-      world.heightAt(mapX, mapY);
+    const architecture =
+      world.architectureAt(
+        mapX,
+        mapY,
+      );
 
-    if (height <= 0) {
+    if (
+      architecture.height <= 0
+    ) {
       continue;
     }
 
@@ -65,13 +95,21 @@ export const castRay = (world, x, y, angle) => {
       x: mapX,
       y: mapY,
       distance,
-      height,
+      height:
+        architecture.height,
+      material:
+        architecture.material,
       side,
-      tile: world.tileAt(mapX, mapY),
-      landmark: world.landmarkAt(
-        mapX,
-        mapY,
-      ),
+      tile:
+        world.tileAt(
+          mapX,
+          mapY,
+        ),
+      landmark:
+        world.landmarkAt(
+          mapX,
+          mapY,
+        ),
     };
   }
 };

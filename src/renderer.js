@@ -7,6 +7,7 @@ import {
   WORLD_LINE_HEIGHT,
 } from "./config.js";
 
+import { MATERIAL } from "./architecture.js";
 import { TILE } from "./map.js";
 import { OBJECT_TYPE } from "./objects.js";
 import { castRay } from "./raycast.js";
@@ -20,99 +21,124 @@ const FONT_STACK =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
 const PALETTE = Object.freeze({
-  background: "#050608",
+  background: "#07080a",
 
-  groundNear: "#5b6268",
-  groundMid: "#454b52",
-  groundFar: "#30353b",
+  fog: "#393d43",
 
-  wallNear: "#a3a0aa",
-  wallMid: "#7b7885",
-  wallFar: "#55535e",
+  groundNear: "#555d62",
+  groundMid: "#3d4449",
+  groundFar: "#292e33",
 
-  lavender: "#8d879d",
-  blue: "#7f919b",
-  grey: "#85898c",
+  stoneNear: "#a09fa5",
+  stoneMid: "#777981",
+  stoneFar: "#50535a",
 
-  grave: "#9a969e",
-  icon: "#9991aa",
+  plasterNear: "#9b99a1",
+  plasterMid: "#72717b",
 
-  text: "#c7d0d4",
-  textBackground: "#08090b",
+  brickNear: "#8a858e",
+  brickMid: "#66616b",
+
+  churchNear: "#9692a1",
+  churchMid: "#6e6a7b",
+  churchFar: "#4e4b59",
+
+  libraryNear: "#8697a0",
+  libraryMid: "#61727b",
+  libraryFar: "#46545b",
+
+  roof: "#706b7a",
+  roofBlue: "#657780",
+
+  lavender: "#898297",
+  blue: "#788d98",
+
+  grave: "#99979d",
+  icon: "#9a91a8",
+
+  text: "#cbd2d5",
+  textBackground: "#090a0c",
 });
 
-const WALL_SHADES = "@#%*+=-:.";
-const TREE_SHADES = "▓▒░:";
-const FLOOR_SHADES = [".", "·", "."];
+const FLOOR_SHADES = [
+  ".",
+  ".",
+  "·",
+  ".",
+];
 
 const depthRatio = (distance) =>
-  Math.min(1, distance / MAX_DEPTH);
-
-const wallGlyph = (
-  tile,
-  distance,
-  side,
-) => {
-  const depth = depthRatio(distance);
-
-  if (tile === TILE.TREE) {
-    const index = Math.min(
-      TREE_SHADES.length - 1,
-      Math.floor(
-        depth * TREE_SHADES.length,
-      ),
-    );
-
-    return TREE_SHADES[index];
-  }
-
-  if (tile === TILE.SHELF) {
-    return distance < 8 ? "▓" : "▒";
-  }
-
-  if (tile === TILE.LOW_WALL) {
-    return distance < 8 ? "=" : "-";
-  }
-
-  const index = Math.min(
-    WALL_SHADES.length - 1,
-    Math.floor(
-      depth * WALL_SHADES.length,
-    ) + side,
+  Math.min(
+    1,
+    distance / MAX_DEPTH,
   );
 
-  return WALL_SHADES[index];
-};
-
-const wallColor = (
-  tile,
+const distanceColor = (
   distance,
+  near,
+  mid,
+  far,
 ) => {
-  const depth = depthRatio(distance);
-
-  if (tile === TILE.TREE) {
-    return depth < 0.35
-      ? PALETTE.blue
-      : PALETTE.wallFar;
-  }
-
-  if (tile === TILE.SHELF) {
-    return PALETTE.lavender;
-  }
-
-  if (tile === TILE.LOW_WALL) {
-    return PALETTE.grey;
-  }
+  const depth =
+    depthRatio(distance);
 
   if (depth < 0.28) {
-    return PALETTE.wallNear;
+    return near;
   }
 
   if (depth < 0.62) {
-    return PALETTE.wallMid;
+    return mid;
   }
 
-  return PALETTE.wallFar;
+  return far;
+};
+
+const materialColor = (
+  material,
+  distance,
+) => {
+  if (material === MATERIAL.CHURCH) {
+    return distanceColor(
+      distance,
+      PALETTE.churchNear,
+      PALETTE.churchMid,
+      PALETTE.churchFar,
+    );
+  }
+
+  if (material === MATERIAL.LIBRARY) {
+    return distanceColor(
+      distance,
+      PALETTE.libraryNear,
+      PALETTE.libraryMid,
+      PALETTE.libraryFar,
+    );
+  }
+
+  if (material === MATERIAL.PLASTER) {
+    return distanceColor(
+      distance,
+      PALETTE.plasterNear,
+      PALETTE.plasterMid,
+      PALETTE.stoneFar,
+    );
+  }
+
+  if (material === MATERIAL.BRICK) {
+    return distanceColor(
+      distance,
+      PALETTE.brickNear,
+      PALETTE.brickMid,
+      PALETTE.stoneFar,
+    );
+  }
+
+  return distanceColor(
+    distance,
+    PALETTE.stoneNear,
+    PALETTE.stoneMid,
+    PALETTE.stoneFar,
+  );
 };
 
 const groundColor = (
@@ -120,19 +146,458 @@ const groundColor = (
   horizon,
   rows,
 ) => {
-  const distance =
-    (row - horizon) /
-    Math.max(1, rows - horizon);
+  const depth =
+    (
+      row -
+      horizon
+    ) /
+    Math.max(
+      1,
+      rows - horizon,
+    );
 
-  if (distance > 0.65) {
+  if (depth > 0.62) {
     return PALETTE.groundNear;
   }
 
-  if (distance > 0.25) {
+  if (depth > 0.22) {
     return PALETTE.groundMid;
   }
 
   return PALETTE.groundFar;
+};
+
+const churchRoofBonus = (
+  x,
+  y,
+) => {
+  if (
+    x >= 34 &&
+    x <= 39 &&
+    y >= 15 &&
+    y <= 19
+  ) {
+    const center = 36.5;
+
+    return Math.max(
+      0,
+      2.8 -
+      Math.abs(
+        x + 0.5 - center,
+      ) * 0.9,
+    );
+  }
+
+  if (
+    x >= 31 &&
+    x <= 41 &&
+    y >= 18 &&
+    y <= 35
+  ) {
+    const center = 36;
+
+    return Math.max(
+      0.2,
+      1.35 -
+      Math.abs(
+        x + 0.5 - center,
+      ) * 0.22,
+    );
+  }
+
+  if (
+    x >= 27 &&
+    x <= 45 &&
+    y >= 23 &&
+    y <= 30
+  ) {
+    const center = 26.5;
+
+    return Math.max(
+      0.15,
+      1.0 -
+      Math.abs(
+        y + 0.5 - center,
+      ) * 0.25,
+    );
+  }
+
+  if (
+    x >= 34 &&
+    x <= 38 &&
+    y >= 33 &&
+    y <= 37
+  ) {
+    return 0.9;
+  }
+
+  return 0;
+};
+
+const oldDistrictRoofBonus = (
+  x,
+  y,
+) => {
+  const buildings = [
+    {
+      x1: 5,
+      x2: 12,
+      y1: 35,
+      y2: 42,
+    },
+    {
+      x1: 16,
+      x2: 25,
+      y1: 34,
+      y2: 42,
+    },
+    {
+      x1: 4,
+      x2: 14,
+      y1: 47,
+      y2: 56,
+    },
+    {
+      x1: 17,
+      x2: 25,
+      y1: 46,
+      y2: 57,
+    },
+  ];
+
+  for (const building of buildings) {
+    if (
+      x < building.x1 ||
+      x > building.x2 ||
+      y < building.y1 ||
+      y > building.y2
+    ) {
+      continue;
+    }
+
+    const center =
+      (
+        building.x1 +
+        building.x2
+      ) / 2;
+
+    const half =
+      Math.max(
+        1,
+        (
+          building.x2 -
+          building.x1
+        ) / 2,
+      );
+
+    return Math.max(
+      0.15,
+      1.25 *
+      (
+        1 -
+        Math.abs(
+          x - center,
+        ) /
+        half
+      ),
+    );
+  }
+
+  return 0;
+};
+
+const roofBonus = (hit) => {
+  if (
+    hit.material ===
+    MATERIAL.CHURCH
+  ) {
+    return churchRoofBonus(
+      hit.x,
+      hit.y,
+    );
+  }
+
+  if (
+    hit.material ===
+    MATERIAL.LIBRARY
+  ) {
+    return 0.55;
+  }
+
+  if (
+    hit.material ===
+    MATERIAL.PLASTER ||
+    hit.material ===
+    MATERIAL.BRICK
+  ) {
+    return oldDistrictRoofBonus(
+      hit.x,
+      hit.y,
+    );
+  }
+
+  return 0;
+};
+
+const roofGlyph = (
+  hit,
+  row,
+  roofTop,
+  wallTop,
+) => {
+  const height =
+    Math.max(
+      1,
+      wallTop - roofTop,
+    );
+
+  const t =
+    (
+      row -
+      roofTop
+    ) /
+    height;
+
+  if (
+    hit.material ===
+    MATERIAL.CHURCH
+  ) {
+    if (
+      hit.x >= 34 &&
+      hit.x <= 39 &&
+      hit.y >= 15 &&
+      hit.y <= 19
+    ) {
+      if (t < 0.12) {
+        return "†";
+      }
+
+      if (t < 0.42) {
+        return "│";
+      }
+
+      return t < 0.72
+        ? "/"
+        : "^";
+    }
+
+    return t < 0.55
+      ? "^"
+      : "/";
+  }
+
+  if (
+    hit.material ===
+    MATERIAL.LIBRARY
+  ) {
+    return t < 0.45
+      ? "_"
+      : "=";
+  }
+
+  return t < 0.5
+    ? "/"
+    : "^";
+};
+
+const facadeGlyph = (
+  hit,
+  row,
+  wallTop,
+  bottom,
+  column,
+) => {
+  if (hit.tile === TILE.TREE) {
+    const pattern =
+      "▓▒░:";
+
+    const index =
+      Math.min(
+        pattern.length - 1,
+        Math.floor(
+          depthRatio(
+            hit.distance,
+          ) *
+          pattern.length,
+        ),
+      );
+
+    return pattern[index];
+  }
+
+  if (hit.tile === TILE.LOW_WALL) {
+    return row === wallTop
+      ? "_"
+      : "=";
+  }
+
+  if (hit.tile === TILE.SHELF) {
+    return (
+      (
+        row +
+        column
+      ) % 3 === 0
+    )
+      ? "│"
+      : "▒";
+  }
+
+  const height =
+    Math.max(
+      1,
+      bottom - wallTop,
+    );
+
+  const v =
+    (
+      row -
+      wallTop
+    ) /
+    height;
+
+  if (
+    hit.material ===
+    MATERIAL.CHURCH
+  ) {
+    if (v < 0.05) {
+      return "_";
+    }
+
+    const windowBand =
+      v > 0.3 &&
+      v < 0.68;
+
+    if (
+      windowBand &&
+      (
+        hit.x +
+        hit.y +
+        column
+      ) % 7 === 0
+    ) {
+      return "│";
+    }
+
+    if (
+      windowBand &&
+      (
+        hit.x * 3 +
+        hit.y +
+        column
+      ) % 11 === 0
+    ) {
+      return "○";
+    }
+
+    return (
+      row +
+      hit.x +
+      hit.y
+    ) % 5 === 0
+      ? ":"
+      : ".";
+  }
+
+  if (
+    hit.material ===
+    MATERIAL.LIBRARY
+  ) {
+    if (
+      v < 0.06 ||
+      v > 0.92
+    ) {
+      return "=";
+    }
+
+    if (
+      v > 0.18 &&
+      v < 0.78 &&
+      (
+        column +
+        hit.x
+      ) % 6 === 0
+    ) {
+      return "│";
+    }
+
+    if (
+      v > 0.18 &&
+      v < 0.78 &&
+      (
+        column +
+        hit.x
+      ) % 6 === 1
+    ) {
+      return ":";
+    }
+
+    return ".";
+  }
+
+  if (
+    hit.material ===
+    MATERIAL.PLASTER
+  ) {
+    if (
+      v > 0.22 &&
+      v < 0.72 &&
+      (
+        column +
+        hit.x * 2
+      ) % 10 === 0
+    ) {
+      return "□";
+    }
+
+    if (
+      v > 0.22 &&
+      v < 0.72 &&
+      (
+        column +
+        hit.x * 2
+      ) % 10 === 1
+    ) {
+      return "│";
+    }
+
+    return (
+      row +
+      column +
+      hit.y
+    ) % 9 === 0
+      ? ":"
+      : ".";
+  }
+
+  if (
+    hit.material ===
+    MATERIAL.BRICK
+  ) {
+    if (
+      v > 0.2 &&
+      v < 0.72 &&
+      (
+        column +
+        hit.x
+      ) % 11 === 0
+    ) {
+      return "□";
+    }
+
+    return (
+      row +
+      column
+    ) % 4 === 0
+      ? ":"
+      : "·";
+  }
+
+  return (
+    row +
+    column
+  ) % 5 === 0
+    ? ":"
+    : ".";
 };
 
 const plotLine = (
@@ -143,45 +608,56 @@ const plotLine = (
   line,
   color,
 ) => {
-  const start = projectShapePoint(
-    projection,
-    line.x1,
-    line.y1,
-  );
+  const start =
+    projectShapePoint(
+      projection,
+      line.x1,
+      line.y1,
+    );
 
-  const end = projectShapePoint(
-    projection,
-    line.x2,
-    line.y2,
-  );
+  const end =
+    projectShapePoint(
+      projection,
+      line.x2,
+      line.y2,
+    );
 
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
+  const dx =
+    end.x - start.x;
 
-  const steps = Math.max(
-    1,
-    Math.ceil(
-      Math.max(
-        Math.abs(dx),
-        Math.abs(dy),
+  const dy =
+    end.y - start.y;
+
+  const steps =
+    Math.max(
+      1,
+      Math.ceil(
+        Math.max(
+          Math.abs(dx),
+          Math.abs(dy),
+        ),
       ),
-    ),
-  );
+    );
 
   for (
     let step = 0;
     step <= steps;
     step += 1
   ) {
-    const t = step / steps;
+    const t =
+      step / steps;
 
-    const x = Math.round(
-      start.x + dx * t,
-    );
+    const x =
+      Math.round(
+        start.x +
+        dx * t,
+      );
 
-    const y = Math.round(
-      start.y + dy * t,
-    );
+    const y =
+      Math.round(
+        start.y +
+        dy * t,
+      );
 
     if (
       y < 0 ||
@@ -199,8 +675,11 @@ const plotLine = (
       continue;
     }
 
-    buffer[y][x] = line.glyph;
-    colorBuffer[y][x] = color;
+    buffer[y][x] =
+      line.glyph;
+
+    colorBuffer[y][x] =
+      color;
   }
 };
 
@@ -216,14 +695,18 @@ const renderObjects = (
 ) => {
   const visible = [];
 
-  for (const object of world.objects) {
-    const projection = projectObject(
-      object,
-      player,
-      camera,
-      columns,
-      rows,
-    );
+  for (
+    const object
+    of world.objects
+  ) {
+    const projection =
+      projectObject(
+        object,
+        player,
+        camera,
+        columns,
+        rows,
+      );
 
     if (!projection) {
       continue;
@@ -245,14 +728,19 @@ const renderObjects = (
     const {
       object,
       projection,
-    } of visible
+    }
+    of visible
   ) {
     const color =
-      object.type === OBJECT_TYPE.ICON
+      object.type ===
+        OBJECT_TYPE.ICON
         ? PALETTE.icon
         : PALETTE.grave;
 
-    for (const line of object.shape) {
+    for (
+      const line
+      of object.shape
+    ) {
       plotLine(
         buffer,
         colorBuffer,
@@ -279,7 +767,9 @@ export class Renderer {
     this.#context =
       canvas.getContext(
         "2d",
-        { alpha: false },
+        {
+          alpha: false,
+        },
       );
 
     this.resize();
@@ -302,14 +792,21 @@ export class Renderer {
       return;
     }
 
-    this.#width = width;
-    this.#height = height;
+    this.#width =
+      width;
+
+    this.#height =
+      height;
 
     this.#canvas.width =
-      Math.floor(width * ratio);
+      Math.floor(
+        width * ratio,
+      );
 
     this.#canvas.height =
-      Math.floor(height * ratio);
+      Math.floor(
+        height * ratio,
+      );
 
     this.#context.setTransform(
       ratio,
@@ -330,9 +827,9 @@ export class Renderer {
       Math.max(
         1,
         Math.ceil(
-          this.#context.measureText(
-            "M",
-          ).width,
+          this.#context
+            .measureText("M")
+            .width,
         ),
       );
   }
@@ -351,42 +848,49 @@ export class Renderer {
     context.font =
       `${WORLD_FONT_SIZE}px ${FONT_STACK}`;
 
-    const columns = Math.max(
-      1,
-      Math.floor(
-        this.#width /
-        this.#cellWidth,
-      ),
-    );
+    const columns =
+      Math.max(
+        1,
+        Math.floor(
+          this.#width /
+          this.#cellWidth,
+        ),
+      );
 
-    const rows = Math.max(
-      1,
-      Math.floor(
-        this.#height /
-        WORLD_LINE_HEIGHT,
-      ),
-    );
+    const rows =
+      Math.max(
+        1,
+        Math.floor(
+          this.#height /
+          WORLD_LINE_HEIGHT,
+        ),
+      );
 
     const projection =
       rows /
       (
         2 *
-        Math.tan(FOV / 2)
+        Math.tan(
+          FOV / 2,
+        )
       );
 
     const horizon =
       rows / 2 +
-      Math.tan(camera.pitch) *
+      Math.tan(
+        camera.pitch,
+      ) *
       projection;
 
     const buffer =
       Array.from(
-        { length: rows },
+        {
+          length: rows,
+        },
         (_, row) => {
-          const ground =
-            row > horizon;
-
-          if (!ground) {
+          if (
+            row <= horizon
+          ) {
             return Array(
               columns,
             ).fill(" ");
@@ -402,7 +906,7 @@ export class Renderer {
                 ) /
                 Math.max(
                   1,
-                  rows / 10,
+                  rows / 11,
                 ),
               ),
             );
@@ -410,14 +914,18 @@ export class Renderer {
           return Array(
             columns,
           ).fill(
-            FLOOR_SHADES[band],
+            FLOOR_SHADES[
+            band
+            ],
           );
         },
       );
 
     const colorBuffer =
       Array.from(
-        { length: rows },
+        {
+          length: rows,
+        },
         (_, row) => {
           const color =
             row > horizon
@@ -430,12 +938,16 @@ export class Renderer {
 
           return Array(
             columns,
-          ).fill(color);
+          ).fill(
+            color,
+          );
         },
       );
 
     const depthBuffer =
-      Array(columns).fill(
+      Array(
+        columns,
+      ).fill(
         Infinity,
       );
 
@@ -455,12 +967,13 @@ export class Renderer {
         camera.yaw +
         cameraX * FOV;
 
-      const hit = castRay(
-        world,
-        player.x,
-        player.y,
-        rayAngle,
-      );
+      const hit =
+        castRay(
+          world,
+          player.x,
+          player.y,
+          rayAngle,
+        );
 
       if (!hit) {
         continue;
@@ -476,10 +989,34 @@ export class Renderer {
           ),
         );
 
-      depthBuffer[column] =
+      hit.distance =
         distance;
 
-      const top =
+      depthBuffer[
+        column
+      ] = distance;
+
+      const bonus =
+        roofBonus(hit);
+
+      const visualHeight =
+        hit.height +
+        bonus;
+
+      const roofTop =
+        Math.floor(
+          horizon -
+          (
+            (
+              visualHeight -
+              player.z
+            ) /
+            distance
+          ) *
+          projection,
+        );
+
+      const wallTop =
         Math.floor(
           horizon -
           (
@@ -502,41 +1039,84 @@ export class Renderer {
           projection,
         );
 
-      const glyph =
-        wallGlyph(
-          hit.tile,
-          distance,
-          hit.side,
-        );
-
-      const color =
-        wallColor(
-          hit.tile,
+      const wallColor =
+        materialColor(
+          hit.material,
           distance,
         );
 
-      const start =
+      const roofColor =
+        hit.material ===
+          MATERIAL.LIBRARY
+          ? PALETTE.roofBlue
+          : PALETTE.roof;
+
+      const roofStart =
         Math.max(
           0,
-          top,
+          roofTop,
         );
 
-      const end =
+      const roofEnd =
+        Math.min(
+          rows - 1,
+          wallTop - 1,
+        );
+
+      for (
+        let row =
+          roofStart;
+        row <= roofEnd;
+        row += 1
+      ) {
+        buffer[row][column] =
+          roofGlyph(
+            hit,
+            row,
+            roofTop,
+            wallTop,
+          );
+
+        colorBuffer[
+          row
+        ][
+          column
+        ] = roofColor;
+      }
+
+      const wallStart =
+        Math.max(
+          0,
+          wallTop,
+        );
+
+      const wallEnd =
         Math.min(
           rows - 1,
           bottom,
         );
 
       for (
-        let row = start;
-        row <= end;
+        let row =
+          wallStart;
+        row <= wallEnd;
         row += 1
       ) {
         buffer[row][column] =
-          glyph;
+          facadeGlyph(
+            hit,
+            row,
+            wallTop,
+            bottom,
+            column,
+          );
 
-        colorBuffer[row][column] =
-          color;
+        colorBuffer[
+          row
+        ][
+          column
+        ] =
+          wallColor;
       }
     }
 
@@ -568,17 +1148,26 @@ export class Renderer {
     ) {
       let start = 0;
 
-      while (start < columns) {
+      while (
+        start < columns
+      ) {
         const color =
-          colorBuffer[row][start];
+          colorBuffer[
+          row
+          ][
+          start
+          ];
 
         let end =
           start + 1;
 
         while (
           end < columns &&
-          colorBuffer[row][end] ===
-          color
+          colorBuffer[
+          row
+          ][
+          end
+          ] === color
         ) {
           end += 1;
         }
@@ -587,7 +1176,9 @@ export class Renderer {
           color;
 
         context.fillText(
-          buffer[row]
+          buffer[
+            row
+          ]
             .slice(
               start,
               end,
@@ -599,11 +1190,14 @@ export class Renderer {
           WORLD_LINE_HEIGHT,
         );
 
-        start = end;
+        start =
+          end;
       }
     }
 
-    if (interaction?.text) {
+    if (
+      interaction?.text
+    ) {
       const text =
         interaction.text;
 
@@ -611,9 +1205,11 @@ export class Renderer {
         `${UI_FONT_SIZE}px ${FONT_STACK}`;
 
       const width =
-        context.measureText(
-          text,
-        ).width;
+        context
+          .measureText(
+            text,
+          )
+          .width;
 
       const x =
         (

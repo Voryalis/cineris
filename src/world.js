@@ -14,24 +14,16 @@ import {
   LANDMARK_LABELS,
 } from "./labels.js";
 
+import {
+  architectureAt,
+} from "./architecture.js";
+
 const WALKABLE_TILES = new Set([
   TILE.ROAD,
   TILE.PAVEMENT,
   TILE.FLOOR,
   TILE.DOOR,
 ]);
-
-const HEIGHT_BY_TILE = Object.freeze({
-  [TILE.VOID]: 0,
-  [TILE.ROAD]: 0,
-  [TILE.PAVEMENT]: 0,
-  [TILE.FLOOR]: 0,
-  [TILE.DOOR]: 0,
-  [TILE.WALL]: 3.4,
-  [TILE.SHELF]: 2.2,
-  [TILE.TREE]: 3.8,
-  [TILE.LOW_WALL]: 0.75,
-});
 
 export class World {
   width = MAP_WIDTH;
@@ -51,10 +43,28 @@ export class World {
     return DISTRICT_MAP[y][x];
   }
 
+  architectureAt(x, y) {
+    const tile = this.tileAt(x, y);
+
+    return architectureAt(
+      x,
+      y,
+      tile,
+    );
+  }
+
   heightAt(x, y) {
-    return HEIGHT_BY_TILE[
-      this.tileAt(x, y)
-    ] ?? 0;
+    return this.architectureAt(
+      x,
+      y,
+    ).height;
+  }
+
+  materialAt(x, y) {
+    return this.architectureAt(
+      x,
+      y,
+    ).material;
   }
 
   isWalkable(x, y) {
@@ -63,16 +73,24 @@ export class World {
     );
   }
 
-  #objectCollision(x, y, radius) {
+  #objectCollision(
+    x,
+    y,
+    radius,
+  ) {
     for (const object of this.objects) {
       if (
-        object.type !== OBJECT_TYPE.GRAVE
+        object.type !==
+        OBJECT_TYPE.GRAVE
       ) {
         continue;
       }
 
-      const dx = x - object.x;
-      const dy = y - object.y;
+      const dx =
+        x - object.x;
+
+      const dy =
+        y - object.y;
 
       const objectRadius =
         object.width * 0.32;
@@ -88,7 +106,11 @@ export class World {
     return false;
   }
 
-  canOccupy(x, y, radius) {
+  canOccupy(
+    x,
+    y,
+    radius,
+  ) {
     const points = [
       [x - radius, y - radius],
       [x + radius, y - radius],
