@@ -252,16 +252,15 @@ const dome = (
   baseZ,
   radius,
   height,
-  segments = 16,
-  rings = 5,
+  segments = 12,
+  rings = 4,
 ) => {
   const faces = [];
-
   const ringsData = [];
 
   for (
     let ring = 0;
-    ring <= rings;
+    ring < rings;
     ring += 1
   ) {
     const t =
@@ -318,7 +317,8 @@ const dome = (
 
   for (
     let ring = 0;
-    ring < rings;
+    ring <
+    ringsData.length - 1;
     ring += 1
   ) {
     const lower =
@@ -350,6 +350,39 @@ const dome = (
         ),
       );
     }
+  }
+
+  const apex =
+    vertex(
+      centerX,
+      centerY,
+      baseZ + height,
+    );
+
+  const topRing =
+    ringsData[
+    ringsData.length - 1
+    ];
+
+  for (
+    let segment = 0;
+    segment < segments;
+    segment += 1
+  ) {
+    const next =
+      (
+        segment + 1
+      ) %
+      segments;
+
+    faces.push(
+      triangle(
+        topRing[segment],
+        topRing[next],
+        apex,
+        SURFACE.CHURCH_DOME,
+      ),
+    );
   }
 
   return faces;
@@ -444,7 +477,7 @@ const churchMesh = () => {
       46.3,
       30.3,
       4.2,
-      5.5,
+      4.85,
       SURFACE.CHURCH_ROOF,
     ),
   );
@@ -529,8 +562,8 @@ const churchMesh = () => {
       6.1,
       2.85,
       2.7,
-      18,
-      6,
+      12,
+      4,
     ),
   );
 
