@@ -83,16 +83,8 @@ const styleForMaterial = (
   switch (material) {
     case MATERIAL.CHURCH:
       return {
-        color:
-          PALETTE.church,
-
-        glyphs: [
-          ".",
-          "·",
-          ":",
-          ".",
-        ],
-
+        color: PALETTE.church,
+        glyphs: [".", "·", ":", "."],
         pattern: {
           interval: 11,
           glyph: ":",
@@ -101,16 +93,8 @@ const styleForMaterial = (
 
     case MATERIAL.LIBRARY:
       return {
-        color:
-          PALETTE.library,
-
-        glyphs: [
-          ".",
-          ":",
-          "·",
-          ".",
-        ],
-
+        color: PALETTE.library,
+        glyphs: [".", ":", "·", "."],
         pattern: {
           interval: 13,
           glyph: "│",
@@ -119,16 +103,8 @@ const styleForMaterial = (
 
     case MATERIAL.PLASTER:
       return {
-        color:
-          PALETTE.plaster,
-
-        glyphs: [
-          ".",
-          "·",
-          ":",
-          ".",
-        ],
-
+        color: PALETTE.plaster,
+        glyphs: [".", "·", ":", "."],
         pattern: {
           interval: 17,
           glyph: ":",
@@ -137,16 +113,8 @@ const styleForMaterial = (
 
     case MATERIAL.BRICK:
       return {
-        color:
-          PALETTE.brick,
-
-        glyphs: [
-          ":",
-          "·",
-          ".",
-          ".",
-        ],
-
+        color: PALETTE.brick,
+        glyphs: [":", "·", ".", "."],
         pattern: {
           interval: 8,
           glyph: ":",
@@ -155,29 +123,14 @@ const styleForMaterial = (
 
     case MATERIAL.STONE:
       return {
-        color:
-          PALETTE.stone,
-
-        glyphs: [
-          ".",
-          ":",
-          "·",
-          ".",
-        ],
+        color: PALETTE.stone,
+        glyphs: [".", ":", "·", "."],
       };
 
     case SURFACE.CHURCH_ROOF:
       return {
-        color:
-          PALETTE.churchRoof,
-
-        glyphs: [
-          "/",
-          "^",
-          ".",
-          ".",
-        ],
-
+        color: PALETTE.churchRoof,
+        glyphs: ["/", "^", ".", "."],
         pattern: {
           interval: 7,
           glyph: "/",
@@ -186,16 +139,8 @@ const styleForMaterial = (
 
     case SURFACE.CHURCH_DOME:
       return {
-        color:
-          PALETTE.dome,
-
-        glyphs: [
-          ".",
-          "·",
-          ":",
-          ".",
-        ],
-
+        color: PALETTE.dome,
+        glyphs: [".", "·", ":", "."],
         pattern: {
           interval: 9,
           glyph: "·",
@@ -204,16 +149,8 @@ const styleForMaterial = (
 
     case SURFACE.HOUSE_ROOF:
       return {
-        color:
-          PALETTE.houseRoof,
-
-        glyphs: [
-          "/",
-          "^",
-          ".",
-          ".",
-        ],
-
+        color: PALETTE.houseRoof,
+        glyphs: ["/", "^", ".", "."],
         pattern: {
           interval: 8,
           glyph: "/",
@@ -222,28 +159,14 @@ const styleForMaterial = (
 
     case SURFACE.LIBRARY_ROOF:
       return {
-        color:
-          PALETTE.libraryRoof,
-
-        glyphs: [
-          "_",
-          "=",
-          ".",
-          ".",
-        ],
+        color: PALETTE.libraryRoof,
+        glyphs: ["_", "=", ".", "."],
       };
 
     case SURFACE.CROSS:
       return {
-        color:
-          PALETTE.cross,
-
-        glyphs: [
-          "†",
-          "†",
-          "+",
-          ".",
-        ],
+        color: PALETTE.cross,
+        glyphs: ["†", "†", "+", "."],
       };
 
     default:
@@ -285,6 +208,55 @@ const paintSky = (
   );
 };
 
+const wallAppearance = (
+  hit,
+  distance,
+  column,
+) => {
+  const style =
+    styleForMaterial(
+      hit.material,
+    );
+
+  if (!style) {
+    return {
+      glyph: ".",
+      color: PALETTE.stone,
+    };
+  }
+
+  const band =
+    Math.min(
+      style.glyphs.length - 1,
+      Math.floor(
+        distance / 8,
+      ) + hit.side,
+    );
+
+  let glyph =
+    style.glyphs[band];
+
+  if (
+    style.pattern &&
+    (
+      column +
+      hit.x * 3 +
+      hit.y * 5
+    ) %
+      style.pattern.interval ===
+      0
+  ) {
+    glyph =
+      style.pattern.glyph ??
+      glyph;
+  }
+
+  return {
+    glyph,
+    color: style.color,
+  };
+};
+
 const renderRayGeometry = (
   buffer,
   colorBuffer,
@@ -316,21 +288,33 @@ const renderRayGeometry = (
     ) *
     focalY;
 
+  const halfFovTangent =
+    Math.tan(
+      FOV / 2,
+    );
+
   for (
     let column = 0;
     column < columns;
     column += 1
   ) {
-    const cameraX =
+    const screenX =
       (
-        column + 0.5
+        2 *
+        (column + 0.5)
       ) /
       columns -
-      0.5;
+      1;
+
+    const rayOffset =
+      Math.atan(
+        screenX *
+        halfFovTangent,
+      );
 
     const rayAngle =
       camera.yaw +
-      cameraX * FOV;
+      rayOffset;
 
     const hit =
       castRay(
@@ -345,6 +329,7 @@ const renderRayGeometry = (
     }
 
     if (
+      hit.tile !== TILE.WALL &&
       hit.tile !== TILE.TREE &&
       hit.tile !== TILE.LOW_WALL &&
       hit.tile !== TILE.SHELF
@@ -357,8 +342,7 @@ const renderRayGeometry = (
         0.001,
         hit.distance *
         Math.cos(
-          rayAngle -
-          camera.yaw,
+          rayOffset,
         ),
       );
 
@@ -390,8 +374,22 @@ const renderRayGeometry = (
       PALETTE.stone;
 
     if (
-      hit.tile ===
-      TILE.TREE
+      hit.tile === TILE.WALL
+    ) {
+      const appearance =
+        wallAppearance(
+          hit,
+          distance,
+          column,
+        );
+
+      glyph =
+        appearance.glyph;
+
+      color =
+        appearance.color;
+    } else if (
+      hit.tile === TILE.TREE
     ) {
       glyph =
         distance < 8
@@ -400,11 +398,8 @@ const renderRayGeometry = (
 
       color =
         PALETTE.tree;
-    }
-
-    if (
-      hit.tile ===
-      TILE.LOW_WALL
+    } else if (
+      hit.tile === TILE.LOW_WALL
     ) {
       glyph =
         distance < 8
@@ -413,11 +408,8 @@ const renderRayGeometry = (
 
       color =
         PALETTE.lowWall;
-    }
-
-    if (
-      hit.tile ===
-      TILE.SHELF
+    } else if (
+      hit.tile === TILE.SHELF
     ) {
       glyph =
         distance < 8
@@ -487,12 +479,10 @@ const plotObjectLine = (
     );
 
   const dx =
-    end.x -
-    start.x;
+    end.x - start.x;
 
   const dy =
-    end.y -
-    start.y;
+    end.y - start.y;
 
   const steps =
     Math.max(
@@ -511,8 +501,7 @@ const plotObjectLine = (
     step += 1
   ) {
     const t =
-      step /
-      steps;
+      step / steps;
 
     const x =
       Math.round(
@@ -627,6 +616,57 @@ const renderObjects = (
   }
 };
 
+const drawBuffer = (
+  context,
+  buffer,
+  colorBuffer,
+  columns,
+  rows,
+  cellWidth,
+) => {
+  for (
+    let row = 0;
+    row < rows;
+    row += 1
+  ) {
+    let start = 0;
+
+    while (
+      start < columns
+    ) {
+      const color =
+        colorBuffer[row][start];
+
+      let end =
+        start + 1;
+
+      while (
+        end < columns &&
+        colorBuffer[row][end] ===
+          color
+      ) {
+        end += 1;
+      }
+
+      context.fillStyle =
+        color;
+
+      context.fillText(
+        buffer[row]
+          .slice(
+            start,
+            end,
+          )
+          .join(""),
+        start * cellWidth,
+        row * WORLD_LINE_HEIGHT,
+      );
+
+      start = end;
+    }
+  }
+};
+
 export class Renderer {
   #canvas;
   #context;
@@ -652,57 +692,45 @@ export class Renderer {
 
   resize() {
     const width =
-      this.#canvas
-        .clientWidth;
+      this.#canvas.clientWidth;
 
     const height =
-      this.#canvas
-        .clientHeight;
+      this.#canvas.clientHeight;
 
     const ratio =
-      window
-        .devicePixelRatio ||
+      window.devicePixelRatio ||
       1;
 
     if (
-      width ===
-      this.#width &&
-      height ===
-      this.#height
+      width === this.#width &&
+      height === this.#height
     ) {
       return;
     }
 
-    this.#width =
-      width;
-
-    this.#height =
-      height;
+    this.#width = width;
+    this.#height = height;
 
     this.#canvas.width =
       Math.floor(
-        width *
-        ratio,
+        width * ratio,
       );
 
     this.#canvas.height =
       Math.floor(
-        height *
-        ratio,
+        height * ratio,
       );
 
-    this.#context
-      .setTransform(
-        ratio,
-        0,
-        0,
-        ratio,
-        0,
-        0,
-      );
+    this.#context.setTransform(
+      ratio,
+      0,
+      0,
+      ratio,
+      0,
+      0,
+    );
 
-    this.#context
-      .textBaseline =
+    this.#context.textBaseline =
       "top";
 
     this.#context.font =
@@ -713,9 +741,7 @@ export class Renderer {
         1,
         Math.ceil(
           this.#context
-            .measureText(
-              "M",
-            )
+            .measureText("M")
             .width,
         ),
       );
@@ -759,9 +785,7 @@ export class Renderer {
 
     const buffer =
       Array.from(
-        {
-          length: rows,
-        },
+        { length: rows },
         () =>
           Array(
             columns,
@@ -770,9 +794,7 @@ export class Renderer {
 
     const colorBuffer =
       Array.from(
-        {
-          length: rows,
-        },
+        { length: rows },
         () =>
           Array(
             columns,
@@ -791,42 +813,17 @@ export class Renderer {
       buffer,
       colorBuffer,
       depthBuffer,
-
       player,
       camera,
-
       columns,
       rows,
-
       cellAspect,
-
       colorNear:
         PALETTE.groundNear,
-
       colorMid:
         PALETTE.groundMid,
-
       colorFar:
         PALETTE.groundFar,
-    });
-
-    rasterizeMesh({
-      mesh:
-        BUILDING_MESH,
-
-      player,
-      camera,
-
-      columns,
-      rows,
-
-      cellAspect,
-
-      buffer,
-      colorBuffer,
-      depthBuffer,
-
-      styleForMaterial,
     });
 
     renderRayGeometry(
@@ -840,6 +837,19 @@ export class Renderer {
       rows,
       cellAspect,
     );
+
+    rasterizeMesh({
+      mesh: BUILDING_MESH,
+      player,
+      camera,
+      columns,
+      rows,
+      cellAspect,
+      buffer,
+      colorBuffer,
+      depthBuffer,
+      styleForMaterial,
+    });
 
     renderObjects(
       buffer,
@@ -859,62 +869,14 @@ export class Renderer {
       this.#height,
     );
 
-    for (
-      let row = 0;
-      row < rows;
-      row += 1
-    ) {
-      let start = 0;
-
-      while (
-        start <
-        columns
-      ) {
-        const color =
-          colorBuffer[
-          row
-          ][
-          start
-          ];
-
-        let end =
-          start + 1;
-
-        while (
-          end <
-          columns &&
-          colorBuffer[
-          row
-          ][
-          end
-          ] ===
-          color
-        ) {
-          end += 1;
-        }
-
-        context.fillStyle =
-          color;
-
-        context.fillText(
-          buffer[row]
-            .slice(
-              start,
-              end,
-            )
-            .join(""),
-
-          start *
-          this.#cellWidth,
-
-          row *
-          WORLD_LINE_HEIGHT,
-        );
-
-        start =
-          end;
-      }
-    }
+    drawBuffer(
+      context,
+      buffer,
+      colorBuffer,
+      columns,
+      rows,
+      this.#cellWidth,
+    );
 
     if (
       interaction?.text
@@ -927,26 +889,20 @@ export class Renderer {
 
       const width =
         context
-          .measureText(
-            text,
-          )
+          .measureText(text)
           .width;
 
       const x =
         (
-          this.#width -
-          width
-        ) /
-        2;
+          this.#width - width
+        ) / 2;
 
       const y =
         this.#height -
-        UI_LINE_HEIGHT *
-        2.25;
+        UI_LINE_HEIGHT * 2.25;
 
       context.fillStyle =
-        PALETTE
-          .textBackground;
+        PALETTE.textBackground;
 
       context.fillRect(
         x - 10,
