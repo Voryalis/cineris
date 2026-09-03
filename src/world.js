@@ -1,44 +1,90 @@
 import {
-  BLOCK_HEIGHT,
-  BLOCK_WIDTH,
+  BLOCK_SIZE,
   ROAD_WIDTH,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "./config.js";
 
-const isRoadAxis = (value, blockSize) => value % blockSize < ROAD_WIDTH;
+const buildingHeight = (blockX, blockY) => {
+  const value = Math.abs(
+    (blockX * 73856093) ^
+    (blockY * 19349663),
+  );
 
-const facadeGlyph = (x, y) => {
-  const edgeX = x % BLOCK_WIDTH;
-  const edgeY = y % BLOCK_HEIGHT;
-  const nearRoad = edgeX === ROAD_WIDTH || edgeY === ROAD_WIDTH;
-  if (nearRoad) return "#";
-  return (x * 17 + y * 31) % 11 === 0 ? "+" : "#";
+  return 1.8 + (value % 5) * 0.65;
 };
 
 export class World {
   width = WORLD_WIDTH;
   height = WORLD_HEIGHT;
 
-  contains(x, y) {
-    return x >= 0 && y >= 0 && x < this.width && y < this.height;
+  #heights;
+
+  constructor() {
+    this.#heights = Array.from(
+      { length: this.height },
+      (_, y) =>
+        Array.from(
+          { length: this.width },
+          (_, x) => this.#generateHeight(x, y),
+        ),
+    );
   }
 
-  isWalkable(x, y) {
-    if (!this.contains(x, y)) return false;
-    return isRoadAxis(x, BLOCK_WIDTH) || isRoadAxis(y, BLOCK_HEIGHT);
+  #generateHeight(x, y) {
+    if (
+      x === 0 ||
+      y === 0 ||
+      x === this.width - 1 ||
+      y === this.height - 1
+    ) {
+      return 4;
+    }
+
+    const localX = x % BLOCK_SIZE;
+    const localY = y % BLOCK_SIZE;
+
+    const building =
+      localX > ROAD_WIDTH &&
+      localY > ROAD_WIDTH &&
+      localX < BLOCK_SIZE - 1 &&
+      localY < BLOCK_SIZE - 1;
+
+    if (!building) return 0;
+
+    return buildingHeight(
+      Math.floor(x / BLOCK_SIZE),
+      Math.floor(y / BLOCK_SIZE),
+    );
   }
 
-  glyphAt(x, y) {
-    if (!this.contains(x, y)) return " ";
+  heightAt(x, y) {
+    if (
+      x < 0 ||
+      y < 0 ||
+      x >= this.width ||
+      y >= this.height
+    ) {
+      return Infinity;
+    }
 
-    const vertical = isRoadAxis(x, BLOCK_WIDTH);
-    const horizontal = isRoadAxis(y, BLOCK_HEIGHT);
+    return this.#heights[y][x];
+  }
 
-    if (vertical && horizontal) return ".";
-    if (vertical) return x % BLOCK_WIDTH === 1 ? "|" : ":";
-    if (horizontal) return y % BLOCK_HEIGHT === 1 ? "-" : ":";
+  canOccupy(x, y, radius) {
+    const points = [
+      [x - radius, y - radius],
+      [x + radius, y - radius],
+      [x - radius, y + radius],
+      [x + radius, y + radius],
+    ];
 
-    return facadeGlyph(x, y);
+    return points.every(
+      ([px, py]) =>
+        this.heightAt(
+          Math.floor(px),
+          Math.floor(py),
+        ) === 0,
+    );
   }
 }
