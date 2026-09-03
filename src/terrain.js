@@ -1,4 +1,8 @@
 import {
+  MAX_DEPTH,
+} from "./config.js";
+
+import {
   quad,
   vertex,
 } from "./geometry.js";
@@ -12,21 +16,36 @@ export const TERRAIN = Object.freeze({
   GROUND: "ground",
 });
 
+const MARGIN =
+  MAX_DEPTH * 2;
+
 export const TERRAIN_MESH =
   Object.freeze([
     ...quad(
-      vertex(0, 0, 0),
-      vertex(MAP_WIDTH, 0, 0),
       vertex(
-        MAP_WIDTH,
-        MAP_HEIGHT,
+        -MARGIN,
+        -MARGIN,
         0,
       ),
+
       vertex(
-        0,
-        MAP_HEIGHT,
+        MAP_WIDTH + MARGIN,
+        -MARGIN,
         0,
       ),
+
+      vertex(
+        MAP_WIDTH + MARGIN,
+        MAP_HEIGHT + MARGIN,
+        0,
+      ),
+
+      vertex(
+        -MARGIN,
+        MAP_HEIGHT + MARGIN,
+        0,
+      ),
+
       TERRAIN.GROUND,
     ),
   ]);
