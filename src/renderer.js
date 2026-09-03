@@ -37,19 +37,12 @@ import {
   castRay,
 } from "./raycast.js";
 
-import {
-  TERRAIN,
-  TERRAIN_MESH,
-} from "./terrain.js";
-
 const FONT_STACK =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
 const PALETTE = Object.freeze({
   skyTop: "#101116",
   skyBottom: "#090a0d",
-
-  ground: "#4d555b",
 
   stone: "#8f9097",
   plaster: "#9d9aa5",
@@ -80,26 +73,10 @@ const styleForMaterial = (
   material,
 ) => {
   switch (material) {
-    case TERRAIN.GROUND:
-      return {
-        color: PALETTE.ground,
-
-        glyphs: [
-          ".",
-          ".",
-          "·",
-          ".",
-        ],
-
-        pattern: {
-          interval: 17,
-          glyph: "·",
-        },
-      };
-
     case MATERIAL.CHURCH:
       return {
-        color: PALETTE.church,
+        color:
+          PALETTE.church,
 
         glyphs: [
           ".",
@@ -116,7 +93,8 @@ const styleForMaterial = (
 
     case MATERIAL.LIBRARY:
       return {
-        color: PALETTE.library,
+        color:
+          PALETTE.library,
 
         glyphs: [
           ".",
@@ -133,7 +111,8 @@ const styleForMaterial = (
 
     case MATERIAL.PLASTER:
       return {
-        color: PALETTE.plaster,
+        color:
+          PALETTE.plaster,
 
         glyphs: [
           ".",
@@ -150,7 +129,8 @@ const styleForMaterial = (
 
     case MATERIAL.BRICK:
       return {
-        color: PALETTE.brick,
+        color:
+          PALETTE.brick,
 
         glyphs: [
           ":",
@@ -167,7 +147,8 @@ const styleForMaterial = (
 
     case MATERIAL.STONE:
       return {
-        color: PALETTE.stone,
+        color:
+          PALETTE.stone,
 
         glyphs: [
           ".",
@@ -197,7 +178,8 @@ const styleForMaterial = (
 
     case SURFACE.CHURCH_DOME:
       return {
-        color: PALETTE.dome,
+        color:
+          PALETTE.dome,
 
         glyphs: [
           ".",
@@ -245,7 +227,8 @@ const styleForMaterial = (
 
     case SURFACE.CROSS:
       return {
-        color: PALETTE.cross,
+        color:
+          PALETTE.cross,
 
         glyphs: [
           "†",
@@ -496,10 +479,12 @@ const plotObjectLine = (
     );
 
   const dx =
-    end.x - start.x;
+    end.x -
+    start.x;
 
   const dy =
-    end.y - start.y;
+    end.y -
+    start.y;
 
   const steps =
     Math.max(
@@ -518,7 +503,8 @@ const plotObjectLine = (
     step += 1
   ) {
     const t =
-      step / steps;
+      step /
+      steps;
 
     const x =
       Math.round(
@@ -658,18 +644,23 @@ export class Renderer {
 
   resize() {
     const width =
-      this.#canvas.clientWidth;
+      this.#canvas
+        .clientWidth;
 
     const height =
-      this.#canvas.clientHeight;
+      this.#canvas
+        .clientHeight;
 
     const ratio =
-      window.devicePixelRatio ||
+      window
+        .devicePixelRatio ||
       1;
 
     if (
-      width === this.#width &&
-      height === this.#height
+      width ===
+      this.#width &&
+      height ===
+      this.#height
     ) {
       return;
     }
@@ -682,24 +673,28 @@ export class Renderer {
 
     this.#canvas.width =
       Math.floor(
-        width * ratio,
+        width *
+        ratio,
       );
 
     this.#canvas.height =
       Math.floor(
-        height * ratio,
+        height *
+        ratio,
       );
 
-    this.#context.setTransform(
-      ratio,
-      0,
-      0,
-      ratio,
-      0,
-      0,
-    );
+    this.#context
+      .setTransform(
+        ratio,
+        0,
+        0,
+        ratio,
+        0,
+        0,
+      );
 
-    this.#context.textBaseline =
+    this.#context
+      .textBaseline =
       "top";
 
     this.#context.font =
@@ -710,7 +705,9 @@ export class Renderer {
         1,
         Math.ceil(
           this.#context
-            .measureText("M")
+            .measureText(
+              "M",
+            )
             .width,
         ),
       );
@@ -784,25 +781,6 @@ export class Renderer {
 
     rasterizeMesh({
       mesh:
-        TERRAIN_MESH,
-
-      player,
-      camera,
-
-      columns,
-      rows,
-
-      cellAspect,
-
-      buffer,
-      colorBuffer,
-      depthBuffer,
-
-      styleForMaterial,
-    });
-
-    rasterizeMesh({
-      mesh:
         BUILDING_MESH,
 
       player,
@@ -858,7 +836,8 @@ export class Renderer {
       let start = 0;
 
       while (
-        start < columns
+        start <
+        columns
       ) {
         const color =
           colorBuffer[
@@ -871,12 +850,14 @@ export class Renderer {
           start + 1;
 
         while (
-          end < columns &&
+          end <
+          columns &&
           colorBuffer[
           row
           ][
           end
-          ] === color
+          ] ===
+          color
         ) {
           end += 1;
         }
@@ -885,14 +866,18 @@ export class Renderer {
           color;
 
         context.fillText(
-          buffer[row]
+          buffer[
+            row
+          ]
             .slice(
               start,
               end,
             )
             .join(""),
+
           start *
           this.#cellWidth,
+
           row *
           WORLD_LINE_HEIGHT,
         );
@@ -931,7 +916,8 @@ export class Renderer {
         2.25;
 
       context.fillStyle =
-        PALETTE.textBackground;
+        PALETTE
+          .textBackground;
 
       context.fillRect(
         x - 10,
