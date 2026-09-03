@@ -68,7 +68,6 @@ export const castRay = (world, x, y, angle) => {
       height,
       side,
       tile: world.tileAt(mapX, mapY),
-      label: world.labelAt(mapX, mapY),
       landmark: world.landmarkAt(
         mapX,
         mapY,

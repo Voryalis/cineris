@@ -5,10 +5,9 @@ export const TILE = Object.freeze({
   FLOOR: 3,
   WALL: 4,
   DOOR: 5,
-  GRAVE: 6,
-  SHELF: 7,
-  ICON: 8,
-  TREE: 9,
+  SHELF: 6,
+  TREE: 7,
+  LOW_WALL: 8,
 });
 
 export const MAP_WIDTH = 72;
@@ -26,7 +25,15 @@ const grid = Array.from(
 );
 
 const set = (x, y, tile) => {
-  if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT) return;
+  if (
+    x < 0 ||
+    y < 0 ||
+    x >= MAP_WIDTH ||
+    y >= MAP_HEIGHT
+  ) {
+    return;
+  }
+
   grid[y][x] = tile;
 };
 
@@ -55,50 +62,58 @@ fill(34, 12, 5, 49, TILE.ROAD);
 
 fill(29, 38, 15, 15, TILE.PAVEMENT);
 
-fill(26, 17, 21, 20, TILE.PAVEMENT);
-fill(28, 19, 17, 16, TILE.FLOOR);
-outline(28, 19, 17, 16, TILE.WALL);
+fill(25, 15, 23, 23, TILE.PAVEMENT);
 
-set(36, 34, TILE.DOOR);
+fill(31, 18, 11, 18, TILE.WALL);
+fill(32, 19, 9, 16, TILE.FLOOR);
 
-fill(31, 21, 11, 1, TILE.WALL);
+fill(27, 23, 19, 8, TILE.WALL);
+fill(28, 24, 17, 6, TILE.FLOOR);
+
+fill(33, 15, 7, 5, TILE.WALL);
+fill(34, 16, 5, 4, TILE.FLOOR);
+
+fill(34, 33, 5, 5, TILE.WALL);
+fill(35, 34, 3, 3, TILE.FLOOR);
+
+set(36, 37, TILE.DOOR);
+
+fill(32, 21, 9, 1, TILE.WALL);
 set(36, 21, TILE.DOOR);
 
-set(30, 23, TILE.ICON);
-set(32, 23, TILE.ICON);
-set(34, 23, TILE.ICON);
-set(36, 23, TILE.ICON);
-set(38, 23, TILE.ICON);
-set(40, 23, TILE.ICON);
-set(42, 23, TILE.ICON);
+fill(17, 2, 39, 14, TILE.PAVEMENT);
+outline(17, 2, 39, 14, TILE.LOW_WALL);
 
-fill(18, 2, 37, 14, TILE.PAVEMENT);
-outline(18, 2, 37, 14, TILE.WALL);
+set(35, 15, TILE.PAVEMENT);
+set(36, 15, TILE.PAVEMENT);
+set(37, 15, TILE.PAVEMENT);
 
-set(36, 15, TILE.DOOR);
+fill(35, 4, 3, 12, TILE.PAVEMENT);
+fill(20, 8, 33, 2, TILE.PAVEMENT);
 
-const graves = [
-  [23, 5],
-  [29, 5],
-  [35, 5],
-  [41, 5],
-  [47, 5],
-];
-
-for (const [x, y] of graves) {
-  set(x, y, TILE.GRAVE);
+for (const [x, y] of [
+  [20, 4],
+  [26, 4],
+  [32, 4],
+  [42, 4],
+  [48, 4],
+  [53, 4],
+  [20, 13],
+  [26, 13],
+  [42, 13],
+  [48, 13],
+  [53, 13],
+]) {
+  set(x, y, TILE.TREE);
 }
 
-for (const x of [21, 27, 33, 39, 45, 51]) {
-  set(x, 3, TILE.TREE);
-  set(x, 13, TILE.TREE);
-}
+fill(47, 35, 22, 20, TILE.PAVEMENT);
 
-fill(48, 35, 21, 20, TILE.PAVEMENT);
-fill(50, 37, 17, 16, TILE.FLOOR);
-outline(50, 37, 17, 16, TILE.WALL);
+fill(49, 37, 19, 17, TILE.WALL);
+fill(50, 38, 17, 15, TILE.FLOOR);
 
-set(50, 45, TILE.DOOR);
+set(49, 44, TILE.DOOR);
+set(49, 45, TILE.DOOR);
 
 for (const y of [39, 42, 48, 51]) {
   for (let x = 53; x <= 64; x += 2) {
@@ -108,21 +123,20 @@ for (const y of [39, 42, 48, 51]) {
 
 fill(3, 33, 24, 27, TILE.PAVEMENT);
 
-const oldDistrictBuildings = [
-  [5, 35, 8, 8],
-  [15, 35, 10, 8],
-  [5, 46, 10, 11],
-  [17, 46, 8, 11],
-];
-
-for (const [x, y, width, height] of oldDistrictBuildings) {
-  fill(x, y, width, height, TILE.FLOOR);
-  outline(x, y, width, height, TILE.WALL);
-}
-
+fill(5, 35, 8, 8, TILE.WALL);
+fill(6, 36, 6, 6, TILE.FLOOR);
 set(9, 42, TILE.DOOR);
+
+fill(16, 34, 10, 9, TILE.WALL);
+fill(17, 35, 8, 7, TILE.FLOOR);
 set(20, 42, TILE.DOOR);
-set(10, 46, TILE.DOOR);
+
+fill(4, 47, 11, 10, TILE.WALL);
+fill(5, 48, 9, 8, TILE.FLOOR);
+set(10, 47, TILE.DOOR);
+
+fill(17, 46, 9, 12, TILE.WALL);
+fill(18, 47, 7, 10, TILE.FLOOR);
 set(20, 46, TILE.DOOR);
 
 fill(13, 33, 2, 27, TILE.ROAD);
