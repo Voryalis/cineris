@@ -6,7 +6,7 @@ import {
 import {
   MAP_HEIGHT,
   MAP_WIDTH,
-} from "./main.js";
+} from "./map.js";
 
 export const TERRAIN = Object.freeze({
   GROUND: "ground",
@@ -22,8 +22,11 @@ export const TERRAIN_MESH =
         MAP_HEIGHT,
         0,
       ),
-      vertex(0, MAP_HEIGHT, 0),
+      vertex(
+        0,
+        MAP_HEIGHT,
+        0,
+      ),
       TERRAIN.GROUND,
     ),
   ]);
-    
