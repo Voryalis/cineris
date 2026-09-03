@@ -1,11 +1,14 @@
 import {
-  FONT_SIZE,
   FOV,
-  LINE_HEIGHT,
   MAX_DEPTH,
+  UI_FONT_SIZE,
+  UI_LINE_HEIGHT,
+  WORLD_FONT_SIZE,
+  WORLD_LINE_HEIGHT,
 } from "./config.js";
 
 import { TILE } from "./map.js";
+import { OBJECT_TYPE } from "./objects.js";
 import { castRay } from "./raycast.js";
 
 import {
@@ -16,15 +19,41 @@ import {
 const FONT_STACK =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
+const PALETTE = Object.freeze({
+  background: "#050608",
+
+  groundNear: "#5b6268",
+  groundMid: "#454b52",
+  groundFar: "#30353b",
+
+  wallNear: "#a3a0aa",
+  wallMid: "#7b7885",
+  wallFar: "#55535e",
+
+  lavender: "#8d879d",
+  blue: "#7f919b",
+  grey: "#85898c",
+
+  grave: "#9a969e",
+  icon: "#9991aa",
+
+  text: "#c7d0d4",
+  textBackground: "#08090b",
+});
+
 const WALL_SHADES = "@#%*+=-:.";
 const TREE_SHADES = "▓▒░:";
-const FLOOR_SHADES = ".· ";
+const FLOOR_SHADES = [".", "·", "."];
 
-const wallGlyph = (tile, distance, side) => {
-  const depth = Math.min(
-    1,
-    distance / MAX_DEPTH,
-  );
+const depthRatio = (distance) =>
+  Math.min(1, distance / MAX_DEPTH);
+
+const wallGlyph = (
+  tile,
+  distance,
+  side,
+) => {
+  const depth = depthRatio(distance);
 
   if (tile === TILE.TREE) {
     const index = Math.min(
@@ -55,11 +84,64 @@ const wallGlyph = (tile, distance, side) => {
   return WALL_SHADES[index];
 };
 
+const wallColor = (
+  tile,
+  distance,
+) => {
+  const depth = depthRatio(distance);
+
+  if (tile === TILE.TREE) {
+    return depth < 0.35
+      ? PALETTE.blue
+      : PALETTE.wallFar;
+  }
+
+  if (tile === TILE.SHELF) {
+    return PALETTE.lavender;
+  }
+
+  if (tile === TILE.LOW_WALL) {
+    return PALETTE.grey;
+  }
+
+  if (depth < 0.28) {
+    return PALETTE.wallNear;
+  }
+
+  if (depth < 0.62) {
+    return PALETTE.wallMid;
+  }
+
+  return PALETTE.wallFar;
+};
+
+const groundColor = (
+  row,
+  horizon,
+  rows,
+) => {
+  const distance =
+    (row - horizon) /
+    Math.max(1, rows - horizon);
+
+  if (distance > 0.65) {
+    return PALETTE.groundNear;
+  }
+
+  if (distance > 0.25) {
+    return PALETTE.groundMid;
+  }
+
+  return PALETTE.groundFar;
+};
+
 const plotLine = (
   buffer,
+  colorBuffer,
   depthBuffer,
   projection,
   line,
+  color,
 ) => {
   const start = projectShapePoint(
     projection,
@@ -118,11 +200,13 @@ const plotLine = (
     }
 
     buffer[y][x] = line.glyph;
+    colorBuffer[y][x] = color;
   }
 };
 
 const renderObjects = (
   buffer,
+  colorBuffer,
   depthBuffer,
   world,
   player,
@@ -141,7 +225,9 @@ const renderObjects = (
       rows,
     );
 
-    if (!projection) continue;
+    if (!projection) {
+      continue;
+    }
 
     visible.push({
       object,
@@ -161,12 +247,19 @@ const renderObjects = (
       projection,
     } of visible
   ) {
+    const color =
+      object.type === OBJECT_TYPE.ICON
+        ? PALETTE.icon
+        : PALETTE.grave;
+
     for (const line of object.shape) {
       plotLine(
         buffer,
+        colorBuffer,
         depthBuffer,
         projection,
         line,
+        color,
       );
     }
   }
@@ -176,17 +269,18 @@ export class Renderer {
   #canvas;
   #context;
 
-  #cellWidth = 10;
+  #cellWidth = 3;
   #width = 0;
   #height = 0;
 
   constructor(canvas) {
     this.#canvas = canvas;
 
-    this.#context = canvas.getContext(
-      "2d",
-      { alpha: false },
-    );
+    this.#context =
+      canvas.getContext(
+        "2d",
+        { alpha: false },
+      );
 
     this.resize();
   }
@@ -226,17 +320,20 @@ export class Renderer {
       0,
     );
 
-    this.#context.font =
-      `${FONT_SIZE}px ${FONT_STACK}`;
-
     this.#context.textBaseline =
       "top";
 
+    this.#context.font =
+      `${WORLD_FONT_SIZE}px ${FONT_STACK}`;
+
     this.#cellWidth =
-      Math.ceil(
-        this.#context.measureText(
-          "M",
-        ).width,
+      Math.max(
+        1,
+        Math.ceil(
+          this.#context.measureText(
+            "M",
+          ).width,
+        ),
       );
   }
 
@@ -247,6 +344,12 @@ export class Renderer {
     interaction = null,
   ) {
     this.resize();
+
+    const context =
+      this.#context;
+
+    context.font =
+      `${WORLD_FONT_SIZE}px ${FONT_STACK}`;
 
     const columns = Math.max(
       1,
@@ -260,14 +363,16 @@ export class Renderer {
       1,
       Math.floor(
         this.#height /
-        LINE_HEIGHT,
+        WORLD_LINE_HEIGHT,
       ),
     );
 
     const projection =
       rows /
-      (2 *
-        Math.tan(FOV / 2));
+      (
+        2 *
+        Math.tan(FOV / 2)
+      );
 
     const horizon =
       rows / 2 +
@@ -281,29 +386,51 @@ export class Renderer {
           const ground =
             row > horizon;
 
-          const depth =
-            ground
-              ? Math.min(
-                2,
-                Math.floor(
-                  (row - horizon) /
-                  Math.max(
-                    1,
-                    rows / 12,
-                  ),
+          if (!ground) {
+            return Array(
+              columns,
+            ).fill(" ");
+          }
+
+          const band =
+            Math.min(
+              FLOOR_SHADES.length - 1,
+              Math.floor(
+                (
+                  row -
+                  horizon
+                ) /
+                Math.max(
+                  1,
+                  rows / 10,
                 ),
-              )
-              : 2;
+              ),
+            );
 
           return Array(
             columns,
           ).fill(
-            ground
-              ? FLOOR_SHADES[
-              depth
-              ]
-              : " ",
+            FLOOR_SHADES[band],
           );
+        },
+      );
+
+    const colorBuffer =
+      Array.from(
+        { length: rows },
+        (_, row) => {
+          const color =
+            row > horizon
+              ? groundColor(
+                row,
+                horizon,
+                rows,
+              )
+              : PALETTE.background;
+
+          return Array(
+            columns,
+          ).fill(color);
         },
       );
 
@@ -318,7 +445,9 @@ export class Renderer {
       column += 1
     ) {
       const cameraX =
-        (column + 0.5) /
+        (
+          column + 0.5
+        ) /
         columns -
         0.5;
 
@@ -333,7 +462,9 @@ export class Renderer {
         rayAngle,
       );
 
-      if (!hit) continue;
+      if (!hit) {
+        continue;
+      }
 
       const distance =
         Math.max(
@@ -351,17 +482,23 @@ export class Renderer {
       const top =
         Math.floor(
           horizon -
-          ((hit.height -
-            player.z) /
-            distance) *
+          (
+            (
+              hit.height -
+              player.z
+            ) /
+            distance
+          ) *
           projection,
         );
 
       const bottom =
         Math.ceil(
           horizon +
-          (player.z /
-            distance) *
+          (
+            player.z /
+            distance
+          ) *
           projection,
         );
 
@@ -370,6 +507,12 @@ export class Renderer {
           hit.tile,
           distance,
           hit.side,
+        );
+
+      const color =
+        wallColor(
+          hit.tile,
+          distance,
         );
 
       const start =
@@ -391,11 +534,15 @@ export class Renderer {
       ) {
         buffer[row][column] =
           glyph;
+
+        colorBuffer[row][column] =
+          color;
       }
     }
 
     renderObjects(
       buffer,
+      colorBuffer,
       depthBuffer,
       world,
       player,
@@ -404,31 +551,8 @@ export class Renderer {
       rows,
     );
 
-    const centerX =
-      Math.floor(
-        columns / 2,
-      );
-
-    const centerY =
-      Math.floor(
-        rows / 2,
-      );
-
-    if (
-      centerY >= 0 &&
-      centerY < rows &&
-      centerX >= 0 &&
-      centerX < columns
-    ) {
-      buffer[centerY][centerX] =
-        "+";
-    }
-
-    const context =
-      this.#context;
-
     context.fillStyle =
-      "#050608";
+      PALETTE.background;
 
     context.fillRect(
       0,
@@ -437,19 +561,46 @@ export class Renderer {
       this.#height,
     );
 
-    context.fillStyle =
-      "#d6e5df";
-
     for (
       let row = 0;
       row < rows;
       row += 1
     ) {
-      context.fillText(
-        buffer[row].join(""),
-        0,
-        row * LINE_HEIGHT,
-      );
+      let start = 0;
+
+      while (start < columns) {
+        const color =
+          colorBuffer[row][start];
+
+        let end =
+          start + 1;
+
+        while (
+          end < columns &&
+          colorBuffer[row][end] ===
+          color
+        ) {
+          end += 1;
+        }
+
+        context.fillStyle =
+          color;
+
+        context.fillText(
+          buffer[row]
+            .slice(
+              start,
+              end,
+            )
+            .join(""),
+          start *
+          this.#cellWidth,
+          row *
+          WORLD_LINE_HEIGHT,
+        );
+
+        start = end;
+      }
     }
 
     if (interaction?.text) {
@@ -457,38 +608,41 @@ export class Renderer {
         interaction.text;
 
       context.font =
-        `${FONT_SIZE}px ${FONT_STACK}`;
+        `${UI_FONT_SIZE}px ${FONT_STACK}`;
 
       const width =
         context.measureText(
           text,
         ).width;
 
-      context.fillStyle =
-        "#050608";
-
-      context.fillRect(
+      const x =
         (
           this.#width -
           width
-        ) / 2 - 8,
+        ) / 2;
+
+      const y =
         this.#height -
-        LINE_HEIGHT * 2.5,
-        width + 16,
-        LINE_HEIGHT + 6,
+        UI_LINE_HEIGHT *
+        2.25;
+
+      context.fillStyle =
+        PALETTE.textBackground;
+
+      context.fillRect(
+        x - 10,
+        y - 4,
+        width + 20,
+        UI_LINE_HEIGHT + 8,
       );
 
       context.fillStyle =
-        "#e8eee9";
+        PALETTE.text;
 
       context.fillText(
         text,
-        (
-          this.#width -
-          width
-        ) / 2,
-        this.#height -
-        LINE_HEIGHT * 2.3,
+        x,
+        y,
       );
     }
   }

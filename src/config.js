@@ -14,5 +14,8 @@ export const MOUSE_SENSITIVITY = 0.0025;
 export const PLAYER_RADIUS = 0.2;
 export const EYE_HEIGHT = 0.6;
 
-export const FONT_SIZE = 16;
-export const LINE_HEIGHT = 18;
+export const WORLD_FONT_SIZE = 4;
+export const WORLD_LINE_HEIGHT = 5;
+
+export const UI_FONT_SIZE = 16;
+export const UI_LINE_HEIGHT = 20;
