@@ -41,37 +41,37 @@ const FONT_STACK =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
 const PALETTE = Object.freeze({
-  backgroundTop: "#0c0d11",
-  backgroundMid: "#090a0e",
-  backgroundBottom: "#07080a",
+  backgroundTop: "#101116",
+  backgroundMid: "#0c0d11",
+  backgroundBottom: "#090a0d",
 
-  groundNear: "#60686d",
-  groundMid: "#474e53",
-  groundFar: "#30363a",
+  groundNear: "#666e73",
+  groundMid: "#4b5358",
+  groundFar: "#343a3f",
 
-  stone: "#85868d",
-  plaster: "#96939e",
-  brick: "#817987",
+  stone: "#8f9097",
+  plaster: "#9d9aa5",
+  brick: "#89808d",
 
-  church: "#908a9c",
-  churchRoof: "#7b7387",
-  dome: "#8b8299",
+  church: "#9993a5",
+  churchRoof: "#82788e",
+  dome: "#9389a2",
 
-  library: "#7d909a",
-  libraryRoof: "#6a7e88",
+  library: "#8497a1",
+  libraryRoof: "#71858f",
 
-  houseRoof: "#736e79",
+  houseRoof: "#7b7581",
 
-  tree: "#788b95",
-  lowWall: "#80838a",
-  shelf: "#898292",
+  tree: "#81949e",
+  lowWall: "#888b92",
+  shelf: "#91899b",
 
-  grave: "#9d9aa2",
-  icon: "#9c92aa",
-  cross: "#bbb4c1",
+  grave: "#a7a3ab",
+  icon: "#a399b1",
+  cross: "#c5becb",
 
-  text: "#d4dadd",
-  textBackground: "#090a0c",
+  text: "#d9dfe1",
+  textBackground: "#0a0b0e",
 });
 
 const FLOOR_SHADES = [
@@ -87,13 +87,16 @@ const styleForMaterial = (
   switch (material) {
     case MATERIAL.CHURCH:
       return {
-        color: PALETTE.church,
+        color:
+          PALETTE.church,
+
         glyphs: [
           ".",
           "·",
           ":",
           ".",
         ],
+
         pattern: {
           interval: 11,
           glyph: ":",
@@ -102,13 +105,16 @@ const styleForMaterial = (
 
     case MATERIAL.LIBRARY:
       return {
-        color: PALETTE.library,
+        color:
+          PALETTE.library,
+
         glyphs: [
           ".",
           ":",
           "·",
           ".",
         ],
+
         pattern: {
           interval: 13,
           glyph: "│",
@@ -117,13 +123,16 @@ const styleForMaterial = (
 
     case MATERIAL.PLASTER:
       return {
-        color: PALETTE.plaster,
+        color:
+          PALETTE.plaster,
+
         glyphs: [
           ".",
           "·",
           ":",
           ".",
         ],
+
         pattern: {
           interval: 17,
           glyph: ":",
@@ -132,13 +141,16 @@ const styleForMaterial = (
 
     case MATERIAL.BRICK:
       return {
-        color: PALETTE.brick,
+        color:
+          PALETTE.brick,
+
         glyphs: [
           ":",
           "·",
           ".",
           ".",
         ],
+
         pattern: {
           interval: 8,
           glyph: ":",
@@ -147,7 +159,9 @@ const styleForMaterial = (
 
     case MATERIAL.STONE:
       return {
-        color: PALETTE.stone,
+        color:
+          PALETTE.stone,
+
         glyphs: [
           ".",
           ":",
@@ -158,13 +172,16 @@ const styleForMaterial = (
 
     case SURFACE.CHURCH_ROOF:
       return {
-        color: PALETTE.churchRoof,
+        color:
+          PALETTE.churchRoof,
+
         glyphs: [
           "/",
           "^",
           ".",
           ".",
         ],
+
         pattern: {
           interval: 7,
           glyph: "/",
@@ -173,13 +190,16 @@ const styleForMaterial = (
 
     case SURFACE.CHURCH_DOME:
       return {
-        color: PALETTE.dome,
+        color:
+          PALETTE.dome,
+
         glyphs: [
           ".",
           "·",
           ":",
           ".",
         ],
+
         pattern: {
           interval: 9,
           glyph: "·",
@@ -188,13 +208,16 @@ const styleForMaterial = (
 
     case SURFACE.HOUSE_ROOF:
       return {
-        color: PALETTE.houseRoof,
+        color:
+          PALETTE.houseRoof,
+
         glyphs: [
           "/",
           "^",
           ".",
           ".",
         ],
+
         pattern: {
           interval: 8,
           glyph: "/",
@@ -203,7 +226,9 @@ const styleForMaterial = (
 
     case SURFACE.LIBRARY_ROOF:
       return {
-        color: PALETTE.libraryRoof,
+        color:
+          PALETTE.libraryRoof,
+
         glyphs: [
           "_",
           "=",
@@ -214,7 +239,9 @@ const styleForMaterial = (
 
     case SURFACE.CROSS:
       return {
-        color: PALETTE.cross,
+        color:
+          PALETTE.cross,
+
         glyphs: [
           "†",
           "†",
@@ -226,6 +253,78 @@ const styleForMaterial = (
     default:
       return null;
   }
+};
+
+const viewMetrics = (
+  columns,
+  rows,
+  cellAspect,
+  camera,
+) => {
+  const focalX =
+    columns /
+    (
+      2 *
+      Math.tan(
+        FOV / 2,
+      )
+    );
+
+  const focalY =
+    focalX *
+    cellAspect;
+
+  const horizon =
+    rows / 2 +
+    Math.tan(
+      camera.pitch,
+    ) *
+    focalY;
+
+  return {
+    focalX,
+    focalY,
+    horizon,
+  };
+};
+
+const groundDepthAtRow = (
+  row,
+  player,
+  camera,
+  rows,
+  focalY,
+) => {
+  const screenY =
+    row + 0.5;
+
+  const vertical =
+    (
+      rows / 2 -
+      screenY
+    ) /
+    focalY;
+
+  const worldVertical =
+    vertical *
+    Math.cos(
+      camera.pitch,
+    ) +
+    Math.sin(
+      camera.pitch,
+    );
+
+  if (
+    worldVertical >=
+    -0.00001
+  ) {
+    return Infinity;
+  }
+
+  return (
+    -player.z /
+    worldVertical
+  );
 };
 
 const groundColor = (
@@ -244,14 +343,64 @@ const groundColor = (
     );
 
   if (depth > 0.62) {
-    return PALETTE.groundNear;
+    return (
+      PALETTE.groundNear
+    );
   }
 
   if (depth > 0.22) {
-    return PALETTE.groundMid;
+    return (
+      PALETTE.groundMid
+    );
   }
 
-  return PALETTE.groundFar;
+  return (
+    PALETTE.groundFar
+  );
+};
+
+const seedGroundDepth = (
+  depthBuffer,
+  player,
+  camera,
+  rows,
+  columns,
+  focalY,
+) => {
+  for (
+    let row = 0;
+    row < rows;
+    row += 1
+  ) {
+    const depth =
+      groundDepthAtRow(
+        row,
+        player,
+        camera,
+        rows,
+        focalY,
+      );
+
+    if (
+      !Number.isFinite(
+        depth,
+      )
+    ) {
+      continue;
+    }
+
+    for (
+      let column = 0;
+      column < columns;
+      column += 1
+    ) {
+      depthBuffer[
+        row
+      ][
+        column
+      ] = depth;
+    }
+  }
 };
 
 const paintBackdrop = (
@@ -273,7 +422,7 @@ const paintBackdrop = (
   );
 
   gradient.addColorStop(
-    0.6,
+    0.62,
     PALETTE.backgroundMid,
   );
 
@@ -302,23 +451,9 @@ const renderRayGeometry = (
   camera,
   columns,
   rows,
+  focalY,
+  horizon,
 ) => {
-  const projection =
-    rows /
-    (
-      2 *
-      Math.tan(
-        FOV / 2,
-      )
-    );
-
-  const horizon =
-    rows / 2 +
-    Math.tan(
-      camera.pitch,
-    ) *
-    projection;
-
   for (
     let column = 0;
     column < columns;
@@ -333,7 +468,8 @@ const renderRayGeometry = (
 
     const rayAngle =
       camera.yaw +
-      cameraX * FOV;
+      cameraX *
+      FOV;
 
     const hit =
       castRay(
@@ -348,9 +484,12 @@ const renderRayGeometry = (
     }
 
     if (
-      hit.tile !== TILE.TREE &&
-      hit.tile !== TILE.LOW_WALL &&
-      hit.tile !== TILE.SHELF
+      hit.tile !==
+      TILE.TREE &&
+      hit.tile !==
+      TILE.LOW_WALL &&
+      hit.tile !==
+      TILE.SHELF
     ) {
       continue;
     }
@@ -362,6 +501,9 @@ const renderRayGeometry = (
         Math.cos(
           rayAngle -
           camera.yaw,
+        ) *
+        Math.cos(
+          camera.pitch,
         ),
       );
 
@@ -375,7 +517,7 @@ const renderRayGeometry = (
           ) /
           distance
         ) *
-        projection,
+        focalY,
       );
 
     const bottom =
@@ -385,7 +527,7 @@ const renderRayGeometry = (
           player.z /
           distance
         ) *
-        projection,
+        focalY,
       );
 
     let glyph = ".";
@@ -393,7 +535,8 @@ const renderRayGeometry = (
       PALETTE.stone;
 
     if (
-      hit.tile === TILE.TREE
+      hit.tile ===
+      TILE.TREE
     ) {
       glyph =
         distance < 8
@@ -449,19 +592,32 @@ const renderRayGeometry = (
     ) {
       if (
         distance >=
-        depthBuffer[row][column]
+        depthBuffer[
+        row
+        ][
+        column
+        ]
       ) {
         continue;
       }
 
-      depthBuffer[row][column] =
-        distance;
+      depthBuffer[
+        row
+      ][
+        column
+      ] = distance;
 
-      buffer[row][column] =
-        glyph;
+      buffer[
+        row
+      ][
+        column
+      ] = glyph;
 
-      colorBuffer[row][column] =
-        color;
+      colorBuffer[
+        row
+      ][
+        column
+      ] = color;
     }
   }
 };
@@ -489,10 +645,12 @@ const plotObjectLine = (
     );
 
   const dx =
-    end.x - start.x;
+    end.x -
+    start.x;
 
   const dy =
-    end.y - start.y;
+    end.y -
+    start.y;
 
   const steps =
     Math.max(
@@ -511,7 +669,8 @@ const plotObjectLine = (
     step += 1
   ) {
     const t =
-      step / steps;
+      step /
+      steps;
 
     const x =
       Math.round(
@@ -535,19 +694,37 @@ const plotObjectLine = (
     }
 
     if (
-      projection.correctedDistance >=
-      depthBuffer[y][x]
+      projection
+        .correctedDistance >=
+      depthBuffer[
+      y
+      ][
+      x
+      ]
     ) {
       continue;
     }
 
-    depthBuffer[y][x] =
-      projection.correctedDistance;
+    depthBuffer[
+      y
+    ][
+      x
+    ] =
+      projection
+        .correctedDistance;
 
-    buffer[y][x] =
+    buffer[
+      y
+    ][
+      x
+    ] =
       line.glyph;
 
-    colorBuffer[y][x] =
+    colorBuffer[
+      y
+    ][
+      x
+    ] =
       color;
   }
 };
@@ -561,6 +738,7 @@ const renderObjects = (
   camera,
   columns,
   rows,
+  cellAspect,
 ) => {
   const visible = [];
 
@@ -575,6 +753,7 @@ const renderObjects = (
         camera,
         columns,
         rows,
+        cellAspect,
       );
 
     if (!projection) {
@@ -589,8 +768,10 @@ const renderObjects = (
 
   visible.sort(
     (a, b) =>
-      b.projection.correctedDistance -
-      a.projection.correctedDistance,
+      b.projection
+        .correctedDistance -
+      a.projection
+        .correctedDistance,
   );
 
   for (
@@ -647,18 +828,23 @@ export class Renderer {
 
   resize() {
     const width =
-      this.#canvas.clientWidth;
+      this.#canvas
+        .clientWidth;
 
     const height =
-      this.#canvas.clientHeight;
+      this.#canvas
+        .clientHeight;
 
     const ratio =
-      window.devicePixelRatio ||
+      window
+        .devicePixelRatio ||
       1;
 
     if (
-      width === this.#width &&
-      height === this.#height
+      width ===
+      this.#width &&
+      height ===
+      this.#height
     ) {
       return;
     }
@@ -671,24 +857,28 @@ export class Renderer {
 
     this.#canvas.width =
       Math.floor(
-        width * ratio,
+        width *
+        ratio,
       );
 
     this.#canvas.height =
       Math.floor(
-        height * ratio,
+        height *
+        ratio,
       );
 
-    this.#context.setTransform(
-      ratio,
-      0,
-      0,
-      ratio,
-      0,
-      0,
-    );
+    this.#context
+      .setTransform(
+        ratio,
+        0,
+        0,
+        ratio,
+        0,
+        0,
+      );
 
-    this.#context.textBaseline =
+    this.#context
+      .textBaseline =
       "top";
 
     this.#context.font =
@@ -737,30 +927,31 @@ export class Renderer {
         ),
       );
 
-    const projection =
-      rows /
-      (
-        2 *
-        Math.tan(
-          FOV / 2,
-        )
-      );
+    const cellAspect =
+      this.#cellWidth /
+      WORLD_LINE_HEIGHT;
 
-    const horizon =
-      rows / 2 +
-      Math.tan(
-        camera.pitch,
-      ) *
-      projection;
+    const {
+      focalY,
+      horizon,
+    } =
+      viewMetrics(
+        columns,
+        rows,
+        cellAspect,
+        camera,
+      );
 
     const buffer =
       Array.from(
         {
-          length: rows,
+          length:
+            rows,
         },
         (_, row) => {
           if (
-            row <= horizon
+            row <=
+            horizon
           ) {
             return Array(
               columns,
@@ -769,7 +960,10 @@ export class Renderer {
 
           const band =
             Math.min(
-              FLOOR_SHADES.length - 1,
+              FLOOR_SHADES
+                .length -
+              1,
+
               Math.floor(
                 (
                   row -
@@ -795,24 +989,23 @@ export class Renderer {
     const colorBuffer =
       Array.from(
         {
-          length: rows,
+          length:
+            rows,
         },
-        (_, row) => {
-          const color =
-            row > horizon
+        (_, row) =>
+          Array(
+            columns,
+          ).fill(
+            row >
+              horizon
               ? groundColor(
                 row,
                 horizon,
                 rows,
               )
-              : PALETTE.backgroundBottom;
-
-          return Array(
-            columns,
-          ).fill(
-            color,
-          );
-        },
+              : PALETTE
+                .backgroundBottom,
+          ),
       );
 
     const depthBuffer =
@@ -821,9 +1014,14 @@ export class Renderer {
         columns,
       );
 
-    const cellAspect =
-      this.#cellWidth /
-      WORLD_LINE_HEIGHT;
+    seedGroundDepth(
+      depthBuffer,
+      player,
+      camera,
+      rows,
+      columns,
+      focalY,
+    );
 
     rasterizeMesh({
       mesh:
@@ -853,6 +1051,8 @@ export class Renderer {
       camera,
       columns,
       rows,
+      focalY,
+      horizon,
     );
 
     renderObjects(
@@ -864,6 +1064,7 @@ export class Renderer {
       camera,
       columns,
       rows,
+      cellAspect,
     );
 
     paintBackdrop(
@@ -880,7 +1081,8 @@ export class Renderer {
       let start = 0;
 
       while (
-        start < columns
+        start <
+        columns
       ) {
         const color =
           colorBuffer[
@@ -893,12 +1095,14 @@ export class Renderer {
           start + 1;
 
         while (
-          end < columns &&
+          end <
+          columns &&
           colorBuffer[
           row
           ][
           end
-          ] === color
+          ] ===
+          color
         ) {
           end += 1;
         }
@@ -907,14 +1111,18 @@ export class Renderer {
           color;
 
         context.fillText(
-          buffer[row]
+          buffer[
+            row
+          ]
             .slice(
               start,
               end,
             )
             .join(""),
+
           start *
           this.#cellWidth,
+
           row *
           WORLD_LINE_HEIGHT,
         );
@@ -944,7 +1152,8 @@ export class Renderer {
         (
           this.#width -
           width
-        ) / 2;
+        ) /
+        2;
 
       const y =
         this.#height -
@@ -952,7 +1161,8 @@ export class Renderer {
         2.25;
 
       context.fillStyle =
-        PALETTE.textBackground;
+        PALETTE
+          .textBackground;
 
       context.fillRect(
         x - 10,

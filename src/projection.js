@@ -1,10 +1,7 @@
-import { FOV } from "./config.js";
-
-const normalizeAngle = (angle) => {
-  while (angle > Math.PI) angle -= Math.PI * 2;
-  while (angle < -Math.PI) angle += Math.PI * 2;
-  return angle;
-};
+import {
+  projectVertex,
+  worldToCamera,
+} from "./geometry.js";
 
 export const projectObject = (
   object,
@@ -12,79 +9,94 @@ export const projectObject = (
   camera,
   columns,
   rows,
+  cellAspect,
 ) => {
-  const dx = object.x - player.x;
-  const dy = object.y - player.y;
+  const bottomCamera =
+    worldToCamera(
+      {
+        x: object.x,
+        y: object.y,
+        z: object.z,
+      },
+      player,
+      camera,
+    );
 
-  const distance = Math.hypot(dx, dy);
-
-  if (distance <= 0.05) return null;
-
-  const angle = Math.atan2(dy, dx);
-
-  const relativeAngle = normalizeAngle(
-    angle - camera.yaw,
-  );
+  const topCamera =
+    worldToCamera(
+      {
+        x: object.x,
+        y: object.y,
+        z:
+          object.z +
+          object.height,
+      },
+      player,
+      camera,
+    );
 
   if (
-    Math.abs(relativeAngle) >
-    FOV / 2 + 0.15
+    bottomCamera.z <= 0.05 ||
+    topCamera.z <= 0.05
   ) {
     return null;
   }
 
-  const correctedDistance =
-    distance *
-    Math.cos(relativeAngle);
+  const bottom =
+    projectVertex(
+      bottomCamera,
+      columns,
+      rows,
+      cellAspect,
+    );
 
-  if (correctedDistance <= 0.05) {
+  const top =
+    projectVertex(
+      topCamera,
+      columns,
+      rows,
+      cellAspect,
+    );
+
+  if (!bottom || !top) {
     return null;
   }
 
-  const horizontalProjection =
+  const focalX =
     columns /
-    (2 * Math.tan(FOV / 2));
-
-  const verticalProjection =
-    rows /
-    (2 * Math.tan(FOV / 2));
-
-  const horizon =
-    rows / 2 +
-    Math.tan(camera.pitch) *
-    verticalProjection;
-
-  const centerX =
-    columns / 2 +
-    Math.tan(relativeAngle) *
-    horizontalProjection;
-
-  const screenWidth =
-    (object.width /
-      correctedDistance) *
-    horizontalProjection;
-
-  const screenHeight =
-    (object.height /
-      correctedDistance) *
-    verticalProjection;
-
-  const bottom =
-    horizon -
-    ((object.z - player.z) /
-      correctedDistance) *
-    verticalProjection;
-
-  const top = bottom - screenHeight;
+    (
+      2 *
+      Math.tan(
+        Math.PI / 6,
+      )
+    );
 
   return {
-    distance,
-    correctedDistance,
-    centerX,
-    top,
-    bottom,
-    screenWidth,
-    screenHeight,
+    distance:
+      bottomCamera.z,
+
+    correctedDistance:
+      bottomCamera.z,
+
+    centerX:
+      bottom.x,
+
+    top:
+      top.y,
+
+    bottom:
+      bottom.y,
+
+    screenWidth:
+      (
+        object.width /
+        bottomCamera.z
+      ) *
+      focalX,
+
+    screenHeight:
+      bottom.y -
+      top.y,
   };
 };
 
@@ -95,9 +107,11 @@ export const projectShapePoint = (
 ) => ({
   x:
     projection.centerX +
-    x * projection.screenWidth,
+    x *
+    projection.screenWidth,
 
   y:
     projection.bottom -
-    y * projection.screenHeight,
+    y *
+    projection.screenHeight,
 });
