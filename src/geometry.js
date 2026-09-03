@@ -1,6 +1,9 @@
-import { FOV } from "./config.js";
+import {
+  FOV,
+  MAX_DEPTH,
+} from "./config.js";
 
-export const NEAR_PLANE = 0.05;
+export const NEAR_PLANE = 0.15;
 
 export const vertex = (
   x,
@@ -37,6 +40,7 @@ export const quad = (
       c,
       material,
     ),
+
     triangle(
       a,
       c,
@@ -78,10 +82,14 @@ export const worldToCamera = (
     point.z - player.z;
 
   const cosYaw =
-    Math.cos(camera.yaw);
+    Math.cos(
+      camera.yaw,
+    );
 
   const sinYaw =
-    Math.sin(camera.yaw);
+    Math.sin(
+      camera.yaw,
+    );
 
   const right =
     -sinYaw * dx +
@@ -92,34 +100,52 @@ export const worldToCamera = (
     sinYaw * dy;
 
   const cosPitch =
-    Math.cos(camera.pitch);
+    Math.cos(
+      camera.pitch,
+    );
 
   const sinPitch =
-    Math.sin(camera.pitch);
-
-  const vertical =
-    dz * cosPitch -
-    forward * sinPitch;
-
-  const depth =
-    forward * cosPitch +
-    dz * sinPitch;
+    Math.sin(
+      camera.pitch,
+    );
 
   return {
     x: right,
-    y: vertical,
-    z: depth,
+
+    y:
+      dz * cosPitch -
+      forward * sinPitch,
+
+    z:
+      forward * cosPitch +
+      dz * sinPitch,
   };
 };
 
-const clipEdge = (
+const interpolatePlane = (
   a,
   b,
-  near,
+  plane,
 ) => {
+  const difference =
+    b.z - a.z;
+
+  if (
+    Math.abs(
+      difference,
+    ) < 0.000001
+  ) {
+    return {
+      ...a,
+      z: plane,
+    };
+  }
+
   const t =
-    (near - a.z) /
-    (b.z - a.z);
+    (
+      plane - a.z
+    ) /
+    difference;
 
   return interpolate(
     a,
@@ -128,9 +154,8 @@ const clipEdge = (
   );
 };
 
-export const clipTriangleNear = (
+const clipAgainstNearPlane = (
   points,
-  near = NEAR_PLANE,
 ) => {
   const output = [];
 
@@ -153,14 +178,16 @@ export const clipTriangleNear = (
       ];
 
     const currentInside =
-      current.z >= near;
+      current.z >=
+      NEAR_PLANE;
 
     const previousInside =
-      previous.z >= near;
+      previous.z >=
+      NEAR_PLANE;
 
     if (
-      currentInside &&
-      previousInside
+      previousInside &&
+      currentInside
     ) {
       output.push(
         current,
@@ -174,10 +201,10 @@ export const clipTriangleNear = (
       !currentInside
     ) {
       output.push(
-        clipEdge(
+        interpolatePlane(
           previous,
           current,
-          near,
+          NEAR_PLANE,
         ),
       );
 
@@ -189,10 +216,10 @@ export const clipTriangleNear = (
       currentInside
     ) {
       output.push(
-        clipEdge(
+        interpolatePlane(
           previous,
           current,
-          near,
+          NEAR_PLANE,
         ),
       );
 
@@ -222,12 +249,80 @@ export const clipTriangleNear = (
       output[1],
       output[2],
     ],
+
     [
       output[0],
       output[2],
       output[3],
     ],
   ];
+};
+
+const isBackFacing = (
+  points,
+) => {
+  const [
+    a,
+    b,
+    c,
+  ] = points;
+
+  const abX =
+    b.x - a.x;
+
+  const abY =
+    b.y - a.y;
+
+  const abZ =
+    b.z - a.z;
+
+  const acX =
+    c.x - a.x;
+
+  const acY =
+    c.y - a.y;
+
+  const acZ =
+    c.z - a.z;
+
+  const normalX =
+    abY * acZ -
+    abZ * acY;
+
+  const normalY =
+    abZ * acX -
+    abX * acZ;
+
+  const normalZ =
+    abX * acY -
+    abY * acX;
+
+  const centerX =
+    (
+      a.x +
+      b.x +
+      c.x
+    ) / 3;
+
+  const centerY =
+    (
+      a.y +
+      b.y +
+      c.y
+    ) / 3;
+
+  const centerZ =
+    (
+      a.z +
+      b.z +
+      c.z
+    ) / 3;
+
+  return (
+    normalX * centerX +
+    normalY * centerY +
+    normalZ * centerZ
+  ) >= 0;
 };
 
 export const projectVertex = (
@@ -237,7 +332,8 @@ export const projectVertex = (
   cellAspect,
 ) => {
   if (
-    point.z <= 0
+    point.z <
+    NEAR_PLANE
   ) {
     return null;
   }
@@ -280,6 +376,45 @@ export const projectVertex = (
   };
 };
 
+const outsideScreen = (
+  points,
+  columns,
+  rows,
+) => {
+  const left =
+    points.every(
+      (point) =>
+        point.x < 0,
+    );
+
+  const right =
+    points.every(
+      (point) =>
+        point.x >=
+        columns,
+    );
+
+  const above =
+    points.every(
+      (point) =>
+        point.y < 0,
+    );
+
+  const below =
+    points.every(
+      (point) =>
+        point.y >=
+        rows,
+    );
+
+  return (
+    left ||
+    right ||
+    above ||
+    below
+  );
+};
+
 export const projectTriangle = (
   face,
   player,
@@ -294,11 +429,13 @@ export const projectTriangle = (
       player,
       camera,
     ),
+
     worldToCamera(
       face.b,
       player,
       camera,
     ),
+
     worldToCamera(
       face.c,
       player,
@@ -306,8 +443,36 @@ export const projectTriangle = (
     ),
   ];
 
+  if (
+    cameraPoints.every(
+      (point) =>
+        point.z <
+        NEAR_PLANE,
+    )
+  ) {
+    return [];
+  }
+
+  if (
+    cameraPoints.every(
+      (point) =>
+        point.z >
+        MAX_DEPTH,
+    )
+  ) {
+    return [];
+  }
+
+  if (
+    isBackFacing(
+      cameraPoints,
+    )
+  ) {
+    return [];
+  }
+
   const clipped =
-    clipTriangleNear(
+    clipAgainstNearPlane(
       cameraPoints,
     );
 
@@ -330,14 +495,27 @@ export const projectTriangle = (
 
     if (
       projected.some(
-        (point) => !point,
+        (point) =>
+          !point,
+      )
+    ) {
+      continue;
+    }
+
+    if (
+      outsideScreen(
+        projected,
+        columns,
+        rows,
       )
     ) {
       continue;
     }
 
     result.push({
-      points: projected,
+      points:
+        projected,
+
       material:
         face.material,
     });
