@@ -3,7 +3,8 @@ import {
   MAX_DEPTH,
 } from "./config.js";
 
-export const NEAR_PLANE = 0.08;
+export const NEAR_PLANE =
+  0.08;
 
 export const vertex = (
   x,
@@ -56,15 +57,18 @@ const interpolate = (
 ) => ({
   x:
     a.x +
-    (b.x - a.x) * t,
+    (b.x - a.x) *
+    t,
 
   y:
     a.y +
-    (b.y - a.y) * t,
+    (b.y - a.y) *
+    t,
 
   z:
     a.z +
-    (b.z - a.z) * t,
+    (b.z - a.z) *
+    t,
 });
 
 export const worldToCamera = (
@@ -73,13 +77,16 @@ export const worldToCamera = (
   camera,
 ) => {
   const dx =
-    point.x - player.x;
+    point.x -
+    player.x;
 
   const dy =
-    point.y - player.y;
+    point.y -
+    player.y;
 
   const dz =
-    point.z - player.z;
+    point.z -
+    player.z;
 
   const cosYaw =
     Math.cos(
@@ -110,7 +117,8 @@ export const worldToCamera = (
     );
 
   return {
-    x: right,
+    x:
+      right,
 
     y:
       dz * cosPitch -
@@ -122,30 +130,32 @@ export const worldToCamera = (
   };
 };
 
-const interpolatePlane = (
+const intersectNearPlane = (
   a,
   b,
-  plane,
 ) => {
-  const difference =
+  const distance =
     b.z - a.z;
 
   if (
     Math.abs(
-      difference,
-    ) < 0.000001
+      distance,
+    ) <
+    0.000001
   ) {
     return {
       ...a,
-      z: plane,
+      z:
+        NEAR_PLANE,
     };
   }
 
   const t =
     (
-      plane - a.z
+      NEAR_PLANE -
+      a.z
     ) /
-    difference;
+    distance;
 
   return interpolate(
     a,
@@ -154,14 +164,15 @@ const interpolatePlane = (
   );
 };
 
-const clipAgainstNearPlane = (
+const clipNearPlane = (
   points,
 ) => {
   const output = [];
 
   for (
     let index = 0;
-    index < points.length;
+    index <
+    points.length;
     index += 1
   ) {
     const current =
@@ -201,10 +212,9 @@ const clipAgainstNearPlane = (
       !currentInside
     ) {
       output.push(
-        interpolatePlane(
+        intersectNearPlane(
           previous,
           current,
-          NEAR_PLANE,
         ),
       );
 
@@ -216,10 +226,9 @@ const clipAgainstNearPlane = (
       currentInside
     ) {
       output.push(
-        interpolatePlane(
+        intersectNearPlane(
           previous,
           current,
-          NEAR_PLANE,
         ),
       );
 
@@ -256,73 +265,6 @@ const clipAgainstNearPlane = (
       output[3],
     ],
   ];
-};
-
-const isBackFacing = (
-  points,
-) => {
-  const [
-    a,
-    b,
-    c,
-  ] = points;
-
-  const abX =
-    b.x - a.x;
-
-  const abY =
-    b.y - a.y;
-
-  const abZ =
-    b.z - a.z;
-
-  const acX =
-    c.x - a.x;
-
-  const acY =
-    c.y - a.y;
-
-  const acZ =
-    c.z - a.z;
-
-  const normalX =
-    abY * acZ -
-    abZ * acY;
-
-  const normalY =
-    abZ * acX -
-    abX * acZ;
-
-  const normalZ =
-    abX * acY -
-    abY * acX;
-
-  const centerX =
-    (
-      a.x +
-      b.x +
-      c.x
-    ) / 3;
-
-  const centerY =
-    (
-      a.y +
-      b.y +
-      c.y
-    ) / 3;
-
-  const centerZ =
-    (
-      a.z +
-      b.z +
-      c.z
-    ) / 3;
-
-  return (
-    normalX * centerX +
-    normalY * centerY +
-    normalZ * centerZ
-  ) >= 0;
 };
 
 export const projectVertex = (
@@ -372,7 +314,8 @@ export const projectVertex = (
       point.z,
 
     inverseDepth:
-      1 / point.z,
+      1 /
+      point.z,
   };
 };
 
@@ -463,16 +406,8 @@ export const projectTriangle = (
     return [];
   }
 
-  if (
-    isBackFacing(
-      cameraPoints,
-    )
-  ) {
-    return [];
-  }
-
   const clipped =
-    clipAgainstNearPlane(
+    clipNearPlane(
       cameraPoints,
     );
 
