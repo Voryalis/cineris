@@ -7,6 +7,10 @@ import {
 } from "./config.js";
 
 import {
+  renderGround,
+} from "./ground.js";
+
+import {
   MATERIAL,
 } from "./architecture.js";
 
@@ -43,6 +47,10 @@ const FONT_STACK =
 const PALETTE = Object.freeze({
   skyTop: "#101116",
   skyBottom: "#090a0d",
+
+  groundNear: "#5d656b",
+  groundMid: "#454c52",
+  groundFar: "#30363c",
 
   stone: "#8f9097",
   plaster: "#9d9aa5",
@@ -779,6 +787,29 @@ export class Renderer {
         columns,
       );
 
+    renderGround({
+      buffer,
+      colorBuffer,
+      depthBuffer,
+
+      player,
+      camera,
+
+      columns,
+      rows,
+
+      cellAspect,
+
+      colorNear:
+        PALETTE.groundNear,
+
+      colorMid:
+        PALETTE.groundMid,
+
+      colorFar:
+        PALETTE.groundFar,
+    });
+
     rasterizeMesh({
       mesh:
         BUILDING_MESH,
@@ -866,9 +897,7 @@ export class Renderer {
           color;
 
         context.fillText(
-          buffer[
-            row
-          ]
+          buffer[row]
             .slice(
               start,
               end,
