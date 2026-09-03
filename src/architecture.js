@@ -11,7 +11,7 @@ export const MATERIAL = Object.freeze({
 
 const churchHeight = (x, y) => {
   if (
-    x >= 34 &&
+    x >= 33 &&
     x <= 39 &&
     y >= 15 &&
     y <= 19
