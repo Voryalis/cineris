@@ -4,29 +4,16 @@ import {
   vertex,
 } from "./geometry.js";
 
-import {
-  MATERIAL,
-} from "./architecture.js";
+export const SURFACE = Object.freeze({
+  CHURCH_ROOF: "church-roof",
+  CHURCH_DOME: "church-dome",
+  HOUSE_ROOF: "house-roof",
+  LIBRARY_ROOF: "library-roof",
+  CROSS: "cross",
+  CHURCH_DRUM: "church",
+});
 
-export const SURFACE =
-  Object.freeze({
-    CHURCH_ROOF:
-      "church-roof",
-
-    CHURCH_DOME:
-      "church-dome",
-
-    HOUSE_ROOF:
-      "house-roof",
-
-    LIBRARY_ROOF:
-      "library-roof",
-
-    CROSS:
-      "cross",
-  });
-
-const box = (
+const solidBox = (
   x1,
   y1,
   x2,
@@ -35,70 +22,21 @@ const box = (
   z2,
   material,
 ) => {
-  const a =
-    vertex(x1, y1, z1);
-
-  const b =
-    vertex(x2, y1, z1);
-
-  const c =
-    vertex(x2, y2, z1);
-
-  const d =
-    vertex(x1, y2, z1);
-
-  const e =
-    vertex(x1, y1, z2);
-
-  const f =
-    vertex(x2, y1, z2);
-
-  const g =
-    vertex(x2, y2, z2);
-
-  const h =
-    vertex(x1, y2, z2);
+  const a = vertex(x1, y1, z1);
+  const b = vertex(x2, y1, z1);
+  const c = vertex(x2, y2, z1);
+  const d = vertex(x1, y2, z1);
+  const e = vertex(x1, y1, z2);
+  const f = vertex(x2, y1, z2);
+  const g = vertex(x2, y2, z2);
+  const h = vertex(x1, y2, z2);
 
   return [
-    ...quad(
-      a,
-      b,
-      f,
-      e,
-      material,
-    ),
-
-    ...quad(
-      b,
-      c,
-      g,
-      f,
-      material,
-    ),
-
-    ...quad(
-      c,
-      d,
-      h,
-      g,
-      material,
-    ),
-
-    ...quad(
-      d,
-      a,
-      e,
-      h,
-      material,
-    ),
-
-    ...quad(
-      e,
-      f,
-      g,
-      h,
-      material,
-    ),
+    ...quad(a, b, f, e, material),
+    ...quad(b, c, g, f, material),
+    ...quad(c, d, h, g, material),
+    ...quad(d, a, e, h, material),
+    ...quad(e, f, g, h, material),
   ];
 };
 
@@ -355,12 +293,12 @@ const dome = (
       points.push(
         vertex(
           centerX +
-          Math.cos(theta) *
-          ringRadius,
+            Math.cos(theta) *
+            ringRadius,
 
           centerY +
-          Math.sin(theta) *
-          ringRadius,
+            Math.sin(theta) *
+            ringRadius,
 
           z,
         ),
@@ -375,7 +313,7 @@ const dome = (
   for (
     let ring = 0;
     ring <
-    ringsData.length - 1;
+      ringsData.length - 1;
     ring += 1
   ) {
     const lower =
@@ -383,7 +321,7 @@ const dome = (
 
     const upper =
       ringsData[
-      ring + 1
+        ring + 1
       ];
 
     for (
@@ -416,9 +354,9 @@ const dome = (
       baseZ + height,
     );
 
-  const topRing =
+  const top =
     ringsData[
-    ringsData.length - 1
+      ringsData.length - 1
     ];
 
   for (
@@ -434,8 +372,8 @@ const dome = (
 
     faces.push(
       triangle(
-        topRing[segment],
-        topRing[next],
+        top[segment],
+        top[next],
         apex,
         SURFACE.CHURCH_DOME,
       ),
@@ -452,10 +390,14 @@ const cross = (
   height,
 ) => {
   const thickness =
-    0.09;
+    0.08;
+
+  const armZ =
+    bottomZ +
+    height * 0.68;
 
   return [
-    ...box(
+    ...solidBox(
       x - thickness,
       y - thickness,
       x + thickness,
@@ -465,284 +407,180 @@ const cross = (
       SURFACE.CROSS,
     ),
 
-    ...box(
+    ...solidBox(
       x - height * 0.25,
       y - thickness,
       x + height * 0.25,
       y + thickness,
-      bottomZ +
-      height * 0.68 -
-      thickness,
-      bottomZ +
-      height * 0.68 +
-      thickness,
+      armZ - thickness,
+      armZ + thickness,
       SURFACE.CROSS,
     ),
   ];
 };
 
 const churchMesh = () => [
-  ...box(
-    31.2,
-    20,
-    41.8,
-    34,
-    0,
-    4.9,
-    MATERIAL.CHURCH,
-  ),
-
   ...gableRoofX(
-    31.08,
-    19.88,
-    41.92,
-    34.12,
-    4.9,
-    6.45,
+    30.88,
+    17.88,
+    42.12,
+    36.12,
+    5.2,
+    6.6,
     SURFACE.CHURCH_ROOF,
-  ),
-
-  ...box(
-    27.4,
-    23.4,
-    31.2,
-    29.6,
-    0,
-    3.9,
-    MATERIAL.CHURCH,
   ),
 
   ...gableRoofY(
-    27.28,
-    23.28,
-    31.32,
-    29.72,
-    3.9,
-    4.7,
+    26.88,
+    22.88,
+    31.12,
+    31.12,
+    4.4,
+    5.2,
     SURFACE.CHURCH_ROOF,
-  ),
-
-  ...box(
-    41.8,
-    23.4,
-    45.6,
-    29.6,
-    0,
-    3.9,
-    MATERIAL.CHURCH,
   ),
 
   ...gableRoofY(
-    41.68,
-    23.28,
-    45.72,
-    29.72,
-    3.9,
-    4.7,
+    41.88,
+    22.88,
+    46.12,
+    31.12,
+    4.4,
+    5.2,
     SURFACE.CHURCH_ROOF,
-  ),
-
-  ...box(
-    33.6,
-    15.2,
-    39.4,
-    20.1,
-    0,
-    7.1,
-    MATERIAL.CHURCH,
   ),
 
   ...pyramidRoof(
-    33.46,
-    15.06,
-    39.54,
-    20.24,
-    7.1,
-    8.95,
+    32.88,
+    14.88,
+    40.12,
+    20.12,
+    7.5,
+    9.15,
     SURFACE.CHURCH_ROOF,
   ),
 
   ...cross(
     36.5,
-    17.65,
-    8.82,
-    1.4,
-  ),
-
-  ...box(
-    34,
-    34,
-    39,
-    38.2,
-    0,
-    3.8,
-    MATERIAL.CHURCH,
+    17.5,
+    9.1,
+    1.35,
   ),
 
   ...pyramidRoof(
-    33.9,
-    33.9,
-    39.1,
-    38.3,
+    33.88,
+    32.88,
+    39.12,
+    38.12,
     3.8,
-    4.85,
+    4.8,
     SURFACE.CHURCH_ROOF,
   ),
 
-  ...box(
-    34.2,
-    24.4,
-    38.8,
-    29,
-    5.2,
-    6.1,
-    MATERIAL.CHURCH,
+  ...solidBox(
+    34.3,
+    24.8,
+    38.7,
+    29.2,
+    6.62,
+    7.25,
+    SURFACE.CHURCH_DRUM,
   ),
 
   ...dome(
     36.5,
-    26.7,
-    6.1,
-    2.55,
-    2.55,
+    27,
+    7.25,
+    2.15,
+    2.15,
   ),
 
   ...cross(
     36.5,
-    26.7,
-    8.55,
-    1.2,
+    27,
+    9.32,
+    1.15,
   ),
 ];
 
 const libraryMesh = () => [
-  ...box(
-    49,
-    37,
-    68,
-    54,
-    0,
-    4.7,
-    MATERIAL.LIBRARY,
-  ),
-
   ...gableRoofX(
     48.88,
     36.88,
     68.12,
     54.12,
-    4.7,
-    5.65,
-    SURFACE.LIBRARY_ROOF,
-  ),
-
-  ...box(
-    48.2,
-    43,
-    50.5,
-    48,
-    0,
-    3.2,
-    MATERIAL.LIBRARY,
-  ),
-
-  ...pyramidRoof(
-    48.08,
-    42.88,
-    50.62,
-    48.12,
-    3.2,
-    3.75,
+    4.8,
+    5.85,
     SURFACE.LIBRARY_ROOF,
   ),
 ];
 
-const house = ({
+const houseRoof = ({
   x1,
   y1,
   x2,
   y2,
   height,
-  material,
   ridge,
 }) => {
   const overhang =
     0.12;
 
-  const roof =
-    ridge === "x"
-      ? gableRoofX(
+  return ridge === "x"
+    ? gableRoofX(
         x1 - overhang,
         y1 - overhang,
         x2 + overhang,
         y2 + overhang,
         height,
-        height + 1.4,
+        height + 1.35,
         SURFACE.HOUSE_ROOF,
       )
-      : gableRoofY(
+    : gableRoofY(
         x1 - overhang,
         y1 - overhang,
         x2 + overhang,
         y2 + overhang,
         height,
-        height + 1.4,
+        height + 1.35,
         SURFACE.HOUSE_ROOF,
       );
-
-  return [
-    ...box(
-      x1,
-      y1,
-      x2,
-      y2,
-      0,
-      height,
-      material,
-    ),
-
-    ...roof,
-  ];
 };
 
 const oldDistrictMesh = () => [
-  ...house({
+  ...houseRoof({
     x1: 5,
     y1: 35,
     x2: 13,
     y2: 43,
     height: 4.2,
-    material: MATERIAL.PLASTER,
     ridge: "x",
   }),
 
-  ...house({
+  ...houseRoof({
     x1: 16,
     y1: 34,
     x2: 26,
     y2: 43,
     height: 5.4,
-    material: MATERIAL.BRICK,
     ridge: "y",
   }),
 
-  ...house({
+  ...houseRoof({
     x1: 4,
     y1: 47,
     x2: 15,
     y2: 57,
     height: 3.7,
-    material: MATERIAL.PLASTER,
     ridge: "x",
   }),
 
-  ...house({
+  ...houseRoof({
     x1: 17,
     y1: 46,
     x2: 26,
     y2: 58,
     height: 4.8,
-    material: MATERIAL.BRICK,
     ridge: "y",
   }),
 ];
