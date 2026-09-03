@@ -3,7 +3,7 @@ import {
   MAX_DEPTH,
 } from "./config.js";
 
-export const NEAR_PLANE = 0.15;
+export const NEAR_PLANE = 0.08;
 
 export const vertex = (
   x,
